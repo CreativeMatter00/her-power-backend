@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Http\Controllers\API\Backend;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ApiCommonResponseResource;
+use App\Http\Resources\ErrorResource;
+use App\Jobs\VideoProcess;
+use App\Models\Course;
+use App\Models\CourseVideo;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
+
+class CourseVideoUploadAndProcessingController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        // 
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $course = Course::where('course_pid', $request->course_pid)->where('active_status', 1)->first();
+
+        $validator = Validator::make($request->all(), [
+            'course_pid'            => 'required',
+            'session_title'          => 'required|max:150',
+            'session_description'   => $course->course_type == 'Online' ? 'nullable' : 'required',
+            'video'                 => $course->course_type == 'Online' ? 'required' : 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return (new ErrorResource($validator->getMessageBag(), 400))->response()->setStatusCode(400);
+        } else {
+            try {
+                DB::beginTransaction();
+                // handle Course lesson information.
+                $insertData = new CourseVideo();
+                $insertData->course_pid = $request->course_pid;
+                $insertData->providor_pid = $course->providor_pid;
+                $insertData->mentor_id = $course->mentor_id;
+                $insertData->session_title = $request->session_title;
+                $insertData->session_description = $request->session_description;
+                $insertData->video_code = 'Pending';
+                $insertData->save();
+
+                if ($request->hasFile('video')) {
+                    $directory = 'attachments/course/' . $request->course_pid . '/video/';
+                    $fileSlug = Str::slug($request->session_title);
+                    $file = $request->file('video');
+                    $extension = $file->getClientOriginalExtension();
+                    $fileName = uniqid() . '-' . $fileSlug . '.' . $extension;
+                    // Ensure directory exists
+                    $fullDirectoryPath = public_path($directory);
+                    if (!file_exists($fullDirectoryPath)) {
+                        mkdir($fullDirectoryPath, 0777, true);
+                        File::chmod($fullDirectoryPath, 0777);
+                    }
+                    // Move the file to the designated directory
+                    $file->move($fullDirectoryPath, $fileName);
+                    $filePath = $directory . $fileName;
+
+                    $course_id =  $insertData->session_id;
+                    VideoProcess::dispatch($filePath, $fileSlug, $course_id, $directory);
+                }
+
+                DB::commit();
+                return (new ApiCommonResponseResource($insertData, "Course lession added successfully", 201))->response()->setStatusCode(201);
+            } catch (Exception $e) {
+                DB::rollBack();
+                return (new ErrorResource('Oops! Course lession adding failed, Please try again.', 501))->response()->setStatusCode(501);
+            }
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $course_pid)
+    {
+        try {
+            $serverUrl = asset('/public');
+            $getMentorInfo = DB::select("SELECT
+                                            a.session_pid,
+                                            a.course_pid,
+                                            a.providor_pid,
+                                            a.session_title,
+                                            a.session_description,
+                                            a.video_code,
+                                            CASE 
+                                                WHEN a.video_link != '' THEN CONCAT('$serverUrl/',a.video_link)
+                                                ELSE NULL 
+                                            END as video_url
+                                        FROM
+                                            trn_coursewise_session a
+                                        where
+                                            a.course_pid = ?
+                                        AND a.active_status = 1", [$course_pid]);
+
+            return (new ApiCommonResponseResource((array) $getMentorInfo, "Data fetched", 200))->response()->setStatusCode(200);
+        } catch (Exception $e) {
+
+            return (new ErrorResource('Oops! Data not found, Please try again.', 404))->response()->setStatusCode(404);
+        }
+
+        // try {
+        //     $serverUrl = asset('/public');
+        //     $getMentorInfo = DB::select("SELECT
+        //                                     a.session_pid,
+        //                                     a.course_pid,
+        //                                     a.providor_pid,
+        //                                     a.session_title,
+        //                                     a.session_description,
+        //                                     a.video_code,
+        //                                     CONCAT('$serverUrl/', a.video_link) as video_link
+        //                                 FROM
+        //                                     trn_coursewise_session a
+        //                                 WHERE
+        //                                     a.course_pid = ?", [$id]);
+
+        //     if ($getMentorInfo) {
+        //         return response()->json([
+        //             'status' => 'success',
+        //             'message' => 'Data fetched',
+        //             'data' => $getMentorInfo
+        //         ], 200, [
+        //             'Access-Control-Allow-Origin' => '*',
+        //             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        //             'Access-Control-Allow-Headers' => 'Origin, X-Requested-With, Content-Type, Accept',
+        //             'Cache-Control' => 'public, max-age=3600',
+        //             'Content-Type' => 'application/json'
+        //         ]);
+        //     } else {
+        //         return response()->json([
+        //             'status' => 'error',
+        //             'message' => 'No data found',
+        //             'data' => null
+        //         ], 404);
+        //     }
+        // } catch (Exception $e) {
+
+        //     return (new ErrorResource('Oops! Something went wrong, Please try again.', 404))->response()->setStatusCode(404);
+        // }
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
+    }
+
+    public function course_lesson($course_id)
+    {
+        try {
+            $serverUrl = asset('/public');
+            $getMentorInfo = DB::select("SELECT
+                                            a.session_pid,
+                                            a.course_pid,
+                                            a.providor_pid,
+                                            a.session_title,
+                                            a.session_description,
+                                            a.video_code,
+                                            CASE 
+                                                WHEN a.video_link != '' THEN CONCAT('$serverUrl/',a.video_link)
+                                                ELSE NULL 
+                                            END as video_url
+                                        FROM trn_coursewise_session a
+                                        WHERE a.session_pid = ?
+                                        AND a.active_status = 1",[$course_id]);
+
+            return (new ApiCommonResponseResource($getMentorInfo, "Data fetched", 200))->response()->setStatusCode(200);
+        } catch (Exception $e) {
+
+            return (new ErrorResource('Oops! Data not found, Please try again.', 404))->response()->setStatusCode(404);
+        }
+    }
+}
