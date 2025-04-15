@@ -191,7 +191,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::get('/blog-post/{id}/{take_comm?}', [BlogPostController::class, 'getById']);
         Route::post('/blog-comment/{id}', [BlogPostController::class, 'blogCommentStore']);
         Route::get('/get-blog-comment/{id}/{take_comm?}', [BlogPostController::class, 'getblogComment']);
-        Route::delete('/delete-blog-post/{id?}', [BlogPostController::class, 'destroy']);
+        Route::delete('/delete-blog-post/{id?}/{user_pid?}', [BlogPostController::class, 'destroy']);
         Route::post('/blog-comment-update/{id}', [BlogPostController::class, 'blogCommentUpdate']);
         Route::delete('/delete-comment/{id}', [BlogPostController::class, 'blogCommentDelete']);
 
@@ -205,7 +205,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::get('/article-homepage', [ArticleController::class, 'homepage']);
         Route::get('/articles', [ArticleController::class, 'allArticle']);
         Route::get('/articles/{id}', [ArticleController::class, 'getById']);
-        Route::delete('/delete-article/{id?}', [ArticleController::class, 'destroy']);
+        Route::delete('/delete-article/{id?}/{user_pid?}', [ArticleController::class, 'destroy']);
 
 
         /**
@@ -217,7 +217,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::post('/document-update/{id}', [DocumentController::class, 'update']);
         Route::get('/documents', [DocumentController::class, 'allDocuments']);
         Route::get('/document-homepage', [DocumentController::class, 'documentsHomepage']);
-        Route::delete('/delete-document/{id?}', [DocumentController::class, 'destroy']);
+        Route::delete('/delete-document/{id?}/{user_pid?}', [DocumentController::class, 'destroy']);
 
         /**
          * Resource Library Video API
@@ -229,7 +229,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::get('/videos', [ResourceLibraryVideoController::class, 'allVideos']);
         Route::get('/video-homepage', [ResourceLibraryVideoController::class, 'homepage']);
         Route::get('/video/{id}', [ResourceLibraryVideoController::class, 'getById']);
-        Route::delete('/delete-video/{id?}', [ResourceLibraryVideoController::class, 'destroy']);
+        Route::delete('/delete-video/{id?}/{user_pid?}', [ResourceLibraryVideoController::class, 'destroy']);
 
         /**
          * get all videos, blogs, article, documents by user id
@@ -246,7 +246,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::apiResource('/success-stories', SuccessStoriesController::class);
         Route::get('/success-stories-homepage', [SuccessStoriesController::class, 'homePage']);
         Route::post('/update-success-stories/{id}', [SuccessStoriesController::class, 'update']);
-        Route::delete('/delete-success-stories/{id?}', [SuccessStoriesController::class, 'destroy']);
+        Route::delete('/delete-success-stories/{id?}/{user_pid?}', [SuccessStoriesController::class, 'destroy']);
         Route::get('/success-story-manage/{user_pid}/{need?}', [SuccessStoriesController::class, 'storyManage']);
         
         
@@ -256,6 +256,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
          * @since 19.02.2025
          */
         Route::apiResource('/challanges', ChallengesController::class);
+        Route::delete('/challanges/{id?}/{user_pid?}', [ChallengesController::class, 'destroy']);
         Route::post('/challange-update/{id}', [ChallengesController::class, 'update']);
         Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
         Route::get('/challenge-manage/{user_pid}/{need?}', [ChallengesController::class, 'challengeManage']);

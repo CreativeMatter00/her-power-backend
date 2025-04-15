@@ -217,15 +217,15 @@ class ChallengesController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $cpost_pid)
+    public function destroy(string $cpost_pid = '', string $user_pid = '')
     {
         // check param
-        if (empty($cpost_pid)) {
-            return (new ErrorResource('Sorry, Specification Needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
+        if (empty($cpost_pid) || empty($user_pid)) {
+            return (new ErrorResource('Sorry, Specification needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
         }
 
         // exist or not
-        $is_exist = Challenge::where('active_status', 1)->where('cpost_pid', $cpost_pid)->first();
+        $is_exist = Challenge::where('user_pid', $user_pid)->where('active_status', 1)->where('cpost_pid', $cpost_pid)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }

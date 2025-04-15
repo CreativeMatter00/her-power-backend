@@ -10,6 +10,7 @@ use App\Models\SuccessStories;
 use App\Service\AttachmentService;
 use App\Service\ImageUploadService;
 use App\Service\VideoUploadService;
+use Dotenv\Util\Str;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -220,15 +221,15 @@ class SuccessStoriesController extends Controller
      * @author Md. Shohag Hossain <shohag@atilimited.net>
      * @since 19/02/2025
      */
-    public function destroy(string $story_pid)
+    public function destroy(string $story_pid = '', string $user_pid = '')
     {
         // check param
-        if (empty($story_pid)) {
+        if (empty($story_pid) || empty($user_pid)) {
             return (new ErrorResource('Sorry, Specification Needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
         }
 
         // exist or not
-        $is_exist = SuccessStories::where('story_pid', $story_pid)->where('active_status', 1)->first();
+        $is_exist = SuccessStories::where('user_pid', $user_pid)->where('story_pid', $story_pid)->where('active_status', 1)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }

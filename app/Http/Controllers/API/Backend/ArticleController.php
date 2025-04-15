@@ -249,15 +249,15 @@ class ArticleController extends Controller
      * @author Md. Shohag Hossain <shohag@atilimited.net>
      * @since 20/01/2025
      */
-    public function destroy(string $post_pid = null)
+    public function destroy(string $post_pid = '', string $user_pid = '')
     {
         // check param
-        if (empty($post_pid)) {
+        if (empty($post_pid) || empty($user_pid)) {
             return (new ErrorResource('Sorry, Specification Needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
         }
 
         // exist or not
-        $is_exist = Article::where('post_pid', $post_pid)->where('post_type', 'Article')->where('active_status', 1)->first();
+        $is_exist = Article::where('user_pid', $user_pid)->where('post_pid', $post_pid)->where('post_type', 'Article')->where('active_status', 1)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }

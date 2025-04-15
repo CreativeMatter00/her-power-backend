@@ -346,15 +346,15 @@ class BlogPostController extends Controller
      * @author Md. Shohag Hossain <shohag@atilimited.net>
      * @since 20/01/2025
      */
-    public function destroy(string $bpost_pid)
+    public function destroy(string $bpost_pid = '', string $user_pid = '')
     {
         // check param
-        if (empty($bpost_pid)) {
+        if (empty($bpost_pid) || empty($user_pid)) {
             return (new ErrorResource('Sorry, Specification Needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
         }
 
         // exist or not
-        $is_exist = BlogPost::where('active_status', 1)->where('bpost_pid', $bpost_pid)->first();
+        $is_exist = BlogPost::where('user_pid', $user_pid)->where('active_status', 1)->where('bpost_pid', $bpost_pid)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }
