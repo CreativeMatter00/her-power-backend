@@ -236,7 +236,7 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
          * @author Md. Shohag Hossain <shohag@atilimited.net>
          * @since date 03.02.2025
          */
-        Route::get('get-vbad-by-pid/{id}/{need}', [BlogPostController::class, 'get_vbad_by_user']);
+        Route::get('get-vbad-by-pid/{id}/{need?}', [BlogPostController::class, 'get_vbad_by_user']);
 
         /**
          * @api success stories module APIs
@@ -247,7 +247,9 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::get('/success-stories-homepage', [SuccessStoriesController::class, 'homePage']);
         Route::post('/update-success-stories/{id}', [SuccessStoriesController::class, 'update']);
         Route::delete('/delete-success-stories/{id?}', [SuccessStoriesController::class, 'destroy']);
-
+        Route::get('/success-story-manage/{user_pid}/{need?}', [SuccessStoriesController::class, 'storyManage']);
+        
+        
         /**
          * @api challenges module APIs
          * @author shohag <shohag@atilimited.net>
@@ -256,6 +258,8 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
         Route::apiResource('/challanges', ChallengesController::class);
         Route::post('/challange-update/{id}', [ChallengesController::class, 'update']);
         Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
+        Route::get('/challenge-manage/{user_pid}/{need?}', [ChallengesController::class, 'challengeManage']);
+        
     });
 // });
 

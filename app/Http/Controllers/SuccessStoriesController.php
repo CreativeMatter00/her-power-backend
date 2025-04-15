@@ -238,4 +238,25 @@ class SuccessStoriesController extends Controller
 
         return (new ApiCommonResponseResource($is_exist, "Story Deleted Successfully", 200))->response()->setStatusCode(200);
     }
+
+    /**
+     * @api Manage story data by user_pid
+     * @author Md. Shohag Hossain <shohag@atilimited.net>
+     * @since 15/04/2025
+     */
+    public function storyManage(string $user_pid, int $need = 10)
+    {
+        $data = SuccessStories::with('documents')
+            ->where('user_pid', $user_pid)
+            ->where('active_status', 1)
+            ->orderBy('cre_date', 'desc')
+            ->paginate($need);
+
+        if ($data->isEmpty()) {
+            return (new ErrorResource('Sorry! Stories not found.', 400))->response()->setStatusCode(400);
+        }
+
+        $result = AttachmentService::returnStoryWithThumbnailAndVideo($data, 'Stories');
+        return $result;
+    }
 }

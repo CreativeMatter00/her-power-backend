@@ -332,7 +332,7 @@ class EventController extends Controller
             ->get();
 
         if ($myEvents->isEmpty()) {
-            return (new ApiCommonResponseResource($myEvents, "Event not found !!", 401))->response()->setStatusCode(401);
+            return (new ApiCommonResponseResource($myEvents, "Event not found !!", 401))->response()->setStatusCode(200);
         } else {
             $formattedEvents = $myEvents->map(function ($event) {
                 $today          = date('Y-m-d 00:00:00');

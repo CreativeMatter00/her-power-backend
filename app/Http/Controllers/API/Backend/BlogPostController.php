@@ -441,6 +441,11 @@ class BlogPostController extends Controller
         return (new ApiCommonResponseResource($is_exist, "Comment Deleted Successfully", 200))->response()->setStatusCode(200);
     }
 
+    /**
+     * @api get video, blog, article & documents data by user_pid
+     * @author Md. Shohag Hossain <shohag@atilimited.net>
+     * @since 04/03/2025
+     */
     public function get_vbad_by_user(string $user_pid, int $need = 10)
     {
         $blog = BlogPost::with('documents')->where('user_pid', $user_pid)->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate($need);

@@ -252,4 +252,21 @@ class ChallengesController extends Controller
         $result = AttachmentService::returnWithChallengeBannerAndThumbnail($data, 'Challenge Post');
         return $result;
     }
+
+    /**
+     * @api Challenge Post get homepage data
+     * @author Md. Shohag Hossain <shohag@atilimited.net>
+     * @since 06/01/2025
+     */
+    public function challengeManage(string $user_pid, int $need)
+    {
+        $data = Challenge::with('documents')->where('user_pid', $user_pid)->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate($need);
+
+        if ($data->isEmpty()) {
+            return (new ErrorResource('Sorry! Challenge Post not found.', 400))->response()->setStatusCode(400);
+        }
+
+        $result = AttachmentService::returnWithChallengeBannerAndThumbnail($data, 'Challenge Post');
+        return $result;
+    }
 }
