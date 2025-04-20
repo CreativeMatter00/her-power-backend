@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ApiCommonResponseResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
@@ -21,22 +22,24 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index($enterpenure_id, $need = null)
     {
-        $enterpenure_id = $request->query('entrepId');
+        $query = Product::with('attachments', 'productvariants')
+            ->where('enterpenure_pid', $enterpenure_id)
+            ->orderBy('ud_serialno', 'asc');
 
+        if ($need != null) {
+            $products = $query->paginate($need);
+        } else {
+            $products = $query->get();
+            return (new ApiCommonResponseResource($products, "Product fetch successfully", 200))->response()->setStatusCode(200);
+        }
 
-        $products = Product::with('attachments', 'productvariants')
-        ->where('enterpenure_pid', $enterpenure_id)
-        ->orderBy('ud_serialno', 'asc')
-        ->paginate(15);
-
-     
-    if (!$products) {
-        return (new ErrorResource("No Product Found !!", 404))->response()->setStatusCode(404);
-    } else {
-        return (new ProductCollection($products, "Product fetch successfully", 200))->response()->setStatusCode(200);
-    }
+        if (!$products) {
+            return (new ErrorResource("No Product Found !!", 404))->response()->setStatusCode(404);
+        } else {
+            return (new ProductCollection($products, "Product fetch successfully", 200))->response()->setStatusCode(200);
+        }
     }
 
     /**
@@ -126,9 +129,9 @@ class ProductController extends Controller
     }
 
 
-    public function updateProductData(Request $request,ImageUploadService $imageUploadService, $id )
+    public function updateProductData(Request $request, ImageUploadService $imageUploadService, $id)
     {
-        
+
         try {
             $updateData = [];
 
@@ -175,7 +178,7 @@ class ProductController extends Controller
             DB::beginTransaction();
             Product::where('product_pid', $id)->update($updateData);
             if ($request->hasFile('attachments')) {
-                 Attachment::where('ref_pid',$id)->where('ref_object_name','product')->delete();
+                Attachment::where('ref_pid', $id)->where('ref_object_name', 'product')->delete();
                 foreach ($request->file('attachments') as $key => $file) {
                     $storeImage  = $imageUploadService->storeMultipleImage($id, $key, $file);
                     if ($storeImage != 200) {

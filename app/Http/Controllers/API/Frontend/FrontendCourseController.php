@@ -79,69 +79,81 @@ class FrontendCourseController extends Controller
             $serverUrl = asset('/public');
 
             $getCourseData = DB::selectOne("SELECT
-                                                    course_pid,
-                                                    course_type,
-                                                    course_title,
-                                                    description,
-                                                    course_price,
-                                                    mentor_pid,
-                                                    full_name,
-                                                    providor_pid,
-                                                    providor_name,
-                                                    second_name,
-                                                    mobile_no,
-                                                    email_id,
-                                                    website_address,
-                                                    address_line,
-                                                    trade_licence,
-                                                    vat_reg_id,
-                                                    tax_reg_id,
-                                                    tin_number,
-                                                    thumbnail,
-                                                    banner,
-                                                    CASE
-                                                        WHEN is_enrolled > 0 THEN 'TRUE'
-                                                        ELSE 'FALSE'
-                                                    END AS already_enrolled
-                                                FROM
+                                            course_pid,
+                                            course_type,
+                                            course_title,
+                                            description,
+                                            course_price,
+                                            mentor_pid,
+                                            full_name,
+                                            providor_pid,
+                                            providor_name,
+                                            second_name,
+                                            mobile_no,
+                                            email_id,
+                                            website_address,
+                                            address_line,
+                                            trade_licence,
+                                            vat_reg_id,
+                                            tax_reg_id,
+                                            tin_number,
+                                            thumbnail,
+                                            banner,
+                                            CASE
+                                                WHEN is_enrolled > 0 THEN 'TRUE'
+                                                ELSE 'FALSE'
+                                            END AS already_enrolled
+                                        FROM
+                                            (
+                                                SELECT
+                                                    co.course_pid,
+                                                    co.course_type,
+                                                    co.course_title,
+                                                    co.description,
+                                                    co.course_price,
+                                                    me.mentor_pid,
+                                                    me.full_name,
+                                                    tp.providor_pid,
+                                                    tp.providor_name,
+                                                    tp.second_name,
+                                                    tp.mobile_no,
+                                                    tp.email_id,
+                                                    tp.website_address,
+                                                    tp.address_line,
+                                                    tp.trade_licence,
+                                                    tp.vat_reg_id,
+                                                    tp.tax_reg_id,
+                                                    tp.tin_number,
+                                                    CONCAT('$serverUrl/', co.thumbnail) as thumbnail,
+                                                    CONCAT('$serverUrl/', co.image) as banner,
                                                     (
-                                                        SELECT
-                                                            co.course_pid,
-                                                            co.course_type,
-                                                            co.course_title,
-                                                            co.description,
-                                                            co.course_price,
-                                                            me.mentor_pid,
-                                                            me.full_name,
-                                                            tp.providor_pid,
-                                                            tp.providor_name,
-                                                            tp.second_name,
-                                                            tp.mobile_no,
-                                                            tp.email_id,
-                                                            tp.website_address,
-                                                            tp.address_line,
-                                                            tp.trade_licence,
-                                                            tp.vat_reg_id,
-                                                            tp.tax_reg_id,
-                                                            tp.tin_number,
-                                                            CONCAT('$serverUrl/', co.thumbnail) as thumbnail,
-                                                            CONCAT('$serverUrl/', co.image) as banner,
-                                                            (
-                                                                select
-                                                                    count(enroll_id) as is_enrolled
-                                                                from
-                                                                    trn_student_enroll a
-                                                                where
-                                                                    a.course_pid = ?
-                                                                    and a.student_pid = ?
-                                                            ) is_enrolled
-                                                        FROM
-                                                            trn_course co
-                                                            LEFT JOIN trn_mentor me on co.mentor_pid = me.mentor_pid
-                                                            LEFT JOIN trn_providor tp on co.providor_pid = tp.providor_pid
-                                                        WHERE
-                                                            co.course_pid = ?
-                                                            AND co.active_status = 1) DATA", [$courseid, $studentid, $courseid,]);
+                                                        select
+                                                            count(enroll_id) as is_enrolled
+                                                        from
+                                                            trn_student_enroll a
+                                                        where
+                                                            a.course_pid = ?
+                                                            and a.student_pid = ?
+                                                    ) is_enrolled
+                                                FROM
+                                                    trn_course co
+                                                    LEFT JOIN trn_mentor me on co.mentor_pid = me.mentor_pid
+                                                    LEFT JOIN trn_providor tp on co.providor_pid = tp.providor_pid
+                                                WHERE
+                                                    co.course_pid = ?
+                                                    AND co.active_status = 1) DATA", [$courseid, $studentid, $courseid,]);
+
+            $brances = DB::select("SELECT branch_pid
+                                            FROM
+                                                trn_branchwise_course
+                                            WHERE
+                                                course_pid = ?
+                                            AND active_status = 1", [$courseid]);
+
+            collect($brances)->map(function ($query) use ($getCourseData) {
+                $getCourseData->branches[] = $query->branch_pid;
+                return $getCourseData;
+            });
 
             return (new ApiCommonResponseResource((array) $getCourseData, "Data fetched", 200))->response()->setStatusCode(200);
         } catch (Exception $e) {
@@ -236,10 +248,10 @@ class FrontendCourseController extends Controller
     public function getStudentEnrolled($need = null)
     {
         try {
-            
+
             if ($need == null) {
                 $data = Student::whereIn('student_pid', StudentEnroll::select('student_pid')->get())->get();
-            }else{
+            } else {
                 $data = Student::whereIn('student_pid', StudentEnroll::select('student_pid')->get())->paginate($need);
             }
 
