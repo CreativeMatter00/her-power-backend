@@ -33,9 +33,9 @@ class EventController extends BaseController
     public function index()
     {
         $event = Event::with('venues:venue_pid,venue_name,venue_title,capacity,venue_address,per_day_rent')
-        ->where('active_status', 1)
-        ->orderBy('ud_serialno', 'asc')
-        ->get();
+            ->where('active_status', 1)
+            ->orderBy('ud_serialno', 'asc')
+            ->get();
 
         if (!$event) {
             return (new ErrorResource("No event Found !!", 404))->response()->setStatusCode(404);
@@ -261,9 +261,9 @@ class EventController extends BaseController
     public function show(string $id)
     {
         $event = Event::with('attachments', 'venues', 'tricketInfo', 'notification', 'eventSchedule')
-        ->where('event_pid', $id)
-        ->where('active_status', 1)
-        ->first();
+            ->where('event_pid', $id)
+            ->where('active_status', 1)
+            ->first();
 
         if (empty($event)) {
             return (new ErrorResource("No Event Found !!", 404))->response()->setStatusCode(404);
@@ -285,56 +285,106 @@ class EventController extends BaseController
      */
     public function update(Request $request, string $id)
     {
-
         try {
-
             DB::beginTransaction();
 
-            // handle venue information.
             $updateEvent = Event::where('event_pid', $id)->first();
-            if ($request->venue_pid) {
 
-                $updateEvent->venue_pid     = $request->venue_pid;
-            }
-            if ($request->event_name) {
-
-                $updateEvent->event_name    = $request->event_name;
-            }
-            if ($request->event_title) {
-
-                $updateEvent->event_title   = $request->event_title;
-            }
-            if ($request->event_desc) {
-
-                $updateEvent->event_desc    = $request->event_desc;
-            }
-            if ($request->start_date) {
-
-                $updateEvent->start_date    = date("Y-m-d", strtotime($request->start_date));
-            }
-            if ($request->end_date) {
-
-                $updateEvent->end_date      = date("Y-m-d", strtotime($request->end_date));
-            }
-            if ($request->remarks) {
-
-                $updateEvent->remarks       = $request->remarks;
-            }
-            if ($request->active_status) {
-
-                $updateEvent->active_status = $request->active_status;
+            if (!$updateEvent) {
+                return (new ErrorResource("No Event Found !!", 404))->response()->setStatusCode(404);
             }
 
-            // $updateEvent->upd_by        = Auth::user()->user_pid;
-            $updateEvent->upd_date      = date('Y-m-d H:i:s');
+            // Update event details
+            $updateEvent->event_title       = $request->event_title ?? $updateEvent->event_title;
+            $updateEvent->event_desc        = $request->event_desc ?? $updateEvent->event_desc;
+            $updateEvent->category_pid      = $request->category_pid ?? $updateEvent->category_pid;
+            $updateEvent->featchered_event  = isset($request->featured_event) ? ($request->featured_event == 'true' ? 1 : 0) : $updateEvent->featchered_event;
+
+            if (!isset($request->virtual_event)) {
+                $updateEvent->virtual_event = '0';
+                $updateEvent->venue_pid = $request->venue_pid ?? $updateEvent->venue_pid;
+            } else {
+                $updateEvent->virtual_event = '1';
+                $updateEvent->venue_pid = null;
+            }
+
+            $updateEvent->ticket_type = $request->ticket_type ?? $updateEvent->ticket_type;
+            $updateEvent->tage        = $request->tags ?? $updateEvent->tage;
+            $updateEvent->remarks     = $request->remarks ?? $updateEvent->remarks;
+            $updateEvent->org_id      = $request->org_pid ?? $updateEvent->org_id;
 
             $updateEvent->update();
 
+            $event_pid = $updateEvent->event_pid;
+
+            // Update schedule data
+            if ($request->has('singleday') || $request->has('multidate') || $request->has('breakdown')) {
+
+                if (!isset($request->breakdown) && !isset($request->multidate)) {
+
+                    $updateSchedule = EventSchedule::where('schedule_pid', $request->singleday['schedule_pid'])->where('event_pid', $event_pid)->first();
+                    $updateSchedule->event_desc     = $request->singleday['event_desc'] ?? null;
+                    $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->singleday['start_datetime']));
+                    $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->singleday['end_datetime']));
+                    $updateSchedule->from_time      = date("H:i:s", strtotime($request->singleday['from_time']));
+                    $updateSchedule->to_time        = date("H:i:s", strtotime($request->singleday['to_time']));
+                    $updateSchedule->update();
+                } elseif (!isset($request->breakdown) && !isset($request->singleday)) {
+                    for ($i = 0; $i < count($request->multidate); $i++) {
+                        $updateSchedule = EventSchedule::where('schedule_pid', $request->multidate[$i]['schedule_pid'])->where('event_pid', $event_pid)->first();
+                        $updateSchedule->event_desc     = $request->multidate[$i]['event_desc'] ?? null;
+                        $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->multidate[$i]['start_datetime']));
+                        $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->multidate[$i]['end_datetime']));
+                        $updateSchedule->from_time      = date("H:i:s", strtotime($request->multidate[$i]['from_time']));
+                        $updateSchedule->to_time        = date("H:i:s", strtotime($request->multidate[$i]['to_time']));
+                        $updateSchedule->update();
+                    }
+                } elseif (!isset($request->singleday) && !isset($request->multidate)) {
+                    for ($i = 0; $i < count($request->breakdown); $i++) {
+                        $updateSchedule = EventSchedule::where('schedule_pid', $request->breakdown[$i]['schedule_pid'])->where('event_pid', $event_pid)->first();
+                        $updateSchedule->event_desc     = $request->breakdown[$i]['event_desc'] ?? null;
+                        $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->breakdown[$i]['start_datetime']));
+                        $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->breakdown[$i]['end_datetime']));
+                        $updateSchedule->from_time      = date("H:i:s", strtotime($request->breakdown[$i]['from_time']));
+                        $updateSchedule->to_time        = date("H:i:s", strtotime($request->breakdown[$i]['to_time']));
+                        $updateSchedule->segment_name   = $request->breakdown[$i]['segment_name'] ?? null;
+                        $updateSchedule->speaker_pid    = $request->breakdown[$i]['speaker_pid'] ?? null;
+                        $updateSchedule->update();
+                    }
+                }
+            }
+
+            // Update ticket data
+            if ($request->ticket_type === 'P' && $request->has('tickets')) {
+                for ($i = 0; $i < count($request->tickets); $i++) {
+                    $updateTricketPayment = TricketPayment::where('ticket_pid', $request->tickets[$i]['ticket_pid'])->where('event_pid', $event_pid)->first();
+                    $updateTricketPayment->ticket_name    = $request->tickets[$i]['ticket_name'];
+                    $updateTricketPayment->ticket_amount  = $request->tickets[$i]['ticket_amount'];
+                    $updateTricketPayment->remarks        = $request->tickets[$i]['facilities'];
+                    $updateTricketPayment->update();
+                }
+            }
+
+            // Update notification data
+            if ($request->has('notification_type') && $request->has('notification_schedule')) {
+                $venue_name = $request->venue_pid ? EventVenue::where('venue_pid', $request->venue_pid)->pluck('venue_name')->first() : $request->vanue_name;
+
+                $updateNotification = EventNotification::where('event_pid', $event_pid)->where('notification_pid', $request->notification_pid)->first();
+                $updateNotification->notification_vanue = $venue_name;
+                $updateNotification->notification_media = $request->notification_type;
+                $updateNotification->notification_days  = $request->notification_schedule;
+                $updateNotification->update();
+            }
+
             DB::commit();
-            return (new EventResource($updateEvent, "Event updated successfully", 201))->response()->setStatusCode(201);
+
+            $updated_event = Event::with('attachments')->where('event_pid', $event_pid)->first();
+
+            return (new EventResource($updated_event, "Event updated successfully", 200))->response()->setStatusCode(200);
         } catch (Exception $e) {
             DB::rollBack();
-            return (new ErrorResource('Oops! Something went wrong, Please try again.', 501))->response()->setStatusCode(501);
+            // return (new ErrorResource('Oops! Something went wrong, Please try again.', 501))->response()->setStatusCode(501);
+            return (new ErrorResource($e->getMessage(), 501))->response()->setStatusCode(501);
         }
     }
 
@@ -344,9 +394,9 @@ class EventController extends BaseController
     public function destroy(string $id)
     {
         $event = Event::with('attachments', 'venues', 'tricketInfo', 'notification', 'eventSchedule')
-        ->where('event_pid', $id)
-        ->where('active_status', 1)
-        ->first();
+            ->where('event_pid', $id)
+            ->where('active_status', 1)
+            ->first();
 
         if ($event) {
             $event->update([

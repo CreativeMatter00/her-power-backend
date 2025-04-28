@@ -31,8 +31,8 @@ class ProductController extends Controller
         if ($need != null) {
             $products = $query->paginate($need);
         } else {
-            $products = $query->get();
-            return (new ApiCommonResponseResource($products, "Product fetch successfully", 200))->response()->setStatusCode(200);
+            $products = $query->paginate(1000);
+            return (new ProductCollection($products, "Product fetch successfully", 200))->response()->setStatusCode(200);
         }
 
         if (!$products) {

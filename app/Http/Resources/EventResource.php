@@ -60,12 +60,12 @@ class EventResource extends JsonResource
             'zip_code'                  => $this->zip_code,
             'featchered_event'          => $this->featchered_event,
             'org_id'                    => $this->org_id,
-            'banner_file_url'           => !empty($this->attachments) && isset($this->attachments[0]) && isset($this->attachments[0]['file_url']) ? asset('/public/'.$this->attachments[0]['file_url']) : null,
-            'thumbnail_file_url'        => !empty($this->attachments) && isset($this->attachments[1]) && isset($this->attachments[1]['file_url']) ? asset('/public/'.$this->attachments[1]['file_url']) : null,
+            'banner_file_url'           => !empty($this->attachments) && isset($this->attachments[0]) && isset($this->attachments[0]['file_url']) ? asset('/public/' . $this->attachments[0]['file_url']) : null,
+            'thumbnail_file_url'        => !empty($this->attachments) && isset($this->attachments[1]) && isset($this->attachments[1]['file_url']) ? asset('/public/' . $this->attachments[1]['file_url']) : null,
             'venues'                    => !empty($this->venues) ? (count($this->venues) > 1 ? $this->venues : (isset($this->venues[0]) ? $this->venues[0] : null)) : null,
-            'tricket_info'              => !empty($this->tricketInfo) ? (count($this->tricketInfo) > 1 ? $this->tricketInfo : (isset($this->tricketInfo[0]) ? $this->tricketInfo[0] : null)) : null,
+            'tricket_info'              => !empty($this->tricketInfo) ? $this->tricketInfo : null,
             'notification'              => !empty($this->notification) && isset($this->notification[0]) ? $this->notification[0] : null,
-            'event_schedule'            => !empty($this->eventSchedule) ? (count($this->eventSchedule) > 1 ? $this->eventSchedule : (isset($this->eventSchedule[0]) ? $this->eventSchedule[0] : null)) : null,
+            'event_schedule'            => !empty($this->eventSchedule) ? $this->eventSchedule : null,
         ];
 
         return $this->filterNullValues($array);
