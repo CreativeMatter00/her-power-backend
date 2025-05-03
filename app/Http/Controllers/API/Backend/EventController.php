@@ -10,6 +10,7 @@ use App\Http\Resources\EventByIdResource;
 use App\Http\Resources\EventCollection;
 use App\Http\Resources\EventResource;
 use App\Http\Resources\EventScheduleResource;
+use App\Models\Attachment;
 use App\Models\Event;
 use App\Models\EventNotification;
 use App\Models\EventParticipant;
@@ -283,7 +284,7 @@ class EventController extends BaseController
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, ImageUploadService $imageUploadService)
     {
         try {
             DB::beginTransaction();
@@ -321,47 +322,80 @@ class EventController extends BaseController
             if ($request->has('singleday') || $request->has('multidate') || $request->has('breakdown')) {
 
                 if (!isset($request->breakdown) && !isset($request->multidate)) {
-
-                    $updateSchedule = EventSchedule::where('schedule_pid', $request->singleday['schedule_pid'])->where('event_pid', $event_pid)->first();
-                    $updateSchedule->event_desc     = $request->singleday['event_desc'] ?? null;
-                    $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->singleday['start_datetime']));
-                    $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->singleday['end_datetime']));
-                    $updateSchedule->from_time      = date("H:i:s", strtotime($request->singleday['from_time']));
-                    $updateSchedule->to_time        = date("H:i:s", strtotime($request->singleday['to_time']));
+                    $singleday = json_decode($request->singleday);
+                    $updateSchedule = EventSchedule::where('schedule_pid', $singleday->schedule_pid)->where('event_pid', $event_pid)->first();
+                    $updateSchedule->event_desc     = $singleday->event_desc ?? null;
+                    $updateSchedule->start_datetime = date("Y-m-d", strtotime($singleday->start_datetime));
+                    $updateSchedule->end_datetime   = date("Y-m-d", strtotime($singleday->end_datetime));
+                    $updateSchedule->from_time      = date("H:i:s", strtotime($singleday->from_time));
+                    $updateSchedule->to_time        = date("H:i:s", strtotime($singleday->to_time));
                     $updateSchedule->update();
                 } elseif (!isset($request->breakdown) && !isset($request->singleday)) {
-                    for ($i = 0; $i < count($request->multidate); $i++) {
-                        $updateSchedule = EventSchedule::where('schedule_pid', $request->multidate[$i]['schedule_pid'])->where('event_pid', $event_pid)->first();
-                        $updateSchedule->event_desc     = $request->multidate[$i]['event_desc'] ?? null;
-                        $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->multidate[$i]['start_datetime']));
-                        $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->multidate[$i]['end_datetime']));
-                        $updateSchedule->from_time      = date("H:i:s", strtotime($request->multidate[$i]['from_time']));
-                        $updateSchedule->to_time        = date("H:i:s", strtotime($request->multidate[$i]['to_time']));
-                        $updateSchedule->update();
+                    $multidate = json_decode($request->multidate);
+                    for ($i = 0; $i < count($multidate); $i++) {
+                        if ($multidate[$i]->schedule_pid) {
+                            $updateSchedule = EventSchedule::where('schedule_pid', $multidate[$i]->schedule_pid)->where('event_pid', $event_pid)->first();
+                            $updateSchedule->event_desc     = $multidate[$i]->event_desc ?? null;
+                            $updateSchedule->start_datetime = date("Y-m-d", strtotime($multidate[$i]->start_datetime));
+                            $updateSchedule->end_datetime   = date("Y-m-d", strtotime($multidate[$i]->end_datetime));
+                            $updateSchedule->from_time      = date("H:i:s", strtotime($multidate[$i]->from_time));
+                            $updateSchedule->to_time        = date("H:i:s", strtotime($multidate[$i]->to_time));
+                            $updateSchedule->update();
+                        } else {
+                            $insertSchedule = new EventSchedule();
+                            $insertSchedule->event_desc     = $multidate[$i]->event_desc ?? null;
+                            $insertSchedule->start_datetime = date("Y-m-d", strtotime($multidate[$i]->start_datetime));
+                            $insertSchedule->end_datetime   = date("Y-m-d", strtotime($multidate[$i]->end_datetime));
+                            $insertSchedule->from_time      = date("H:i:s", strtotime($multidate[$i]->from_time));
+                            $insertSchedule->to_time        = date("H:i:s", strtotime($multidate[$i]->to_time));
+                            $insertSchedule->save();
+                        }
                     }
                 } elseif (!isset($request->singleday) && !isset($request->multidate)) {
-                    for ($i = 0; $i < count($request->breakdown); $i++) {
-                        $updateSchedule = EventSchedule::where('schedule_pid', $request->breakdown[$i]['schedule_pid'])->where('event_pid', $event_pid)->first();
-                        $updateSchedule->event_desc     = $request->breakdown[$i]['event_desc'] ?? null;
-                        $updateSchedule->start_datetime = date("Y-m-d", strtotime($request->breakdown[$i]['start_datetime']));
-                        $updateSchedule->end_datetime   = date("Y-m-d", strtotime($request->breakdown[$i]['end_datetime']));
-                        $updateSchedule->from_time      = date("H:i:s", strtotime($request->breakdown[$i]['from_time']));
-                        $updateSchedule->to_time        = date("H:i:s", strtotime($request->breakdown[$i]['to_time']));
-                        $updateSchedule->segment_name   = $request->breakdown[$i]['segment_name'] ?? null;
-                        $updateSchedule->speaker_pid    = $request->breakdown[$i]['speaker_pid'] ?? null;
-                        $updateSchedule->update();
+                    $breakdown = json_decode($request->breakdown);
+                    for ($i = 0; $i < count($breakdown); $i++) {
+                        if ($breakdown[$i]->schedule_pid) {
+                            $updateSchedule = EventSchedule::where('schedule_pid', $breakdown[$i]->schedule_pid)->where('event_pid', $event_pid)->first();
+                            $updateSchedule->event_desc     = $breakdown[$i]->event_desc ?? null;
+                            $updateSchedule->start_datetime = date("Y-m-d", strtotime($breakdown[$i]->start_datetime));
+                            $updateSchedule->end_datetime   = date("Y-m-d", strtotime($breakdown[$i]->end_datetime));
+                            $updateSchedule->from_time      = date("H:i:s", strtotime($breakdown[$i]->from_time));
+                            $updateSchedule->to_time        = date("H:i:s", strtotime($breakdown[$i]->to_time));
+                            $updateSchedule->segment_name   = $breakdown[$i]->segment_name ?? null;
+                            $updateSchedule->speaker_pid    = $breakdown[$i]->speaker_pid ?? null;
+                            $updateSchedule->update();
+                        } else {
+                            $insertSchedule = new EventSchedule();
+                            $insertSchedule->event_desc     = $breakdown[$i]->event_desc ?? null;
+                            $insertSchedule->start_datetime = date("Y-m-d", strtotime($breakdown[$i]->start_datetime));
+                            $insertSchedule->end_datetime   = date("Y-m-d", strtotime($breakdown[$i]->end_datetime));
+                            $insertSchedule->from_time      = date("H:i:s", strtotime($breakdown[$i]->from_time));
+                            $insertSchedule->to_time        = date("H:i:s", strtotime($breakdown[$i]->to_time));
+                            $insertSchedule->segment_name   = $breakdown[$i]->segment_name ?? null;
+                            $insertSchedule->speaker_pid    = $breakdown[$i]->speaker_pid ?? null;
+                            $insertSchedule->save();
+                        }
                     }
                 }
             }
 
             // Update ticket data
             if ($request->ticket_type === 'P' && $request->has('tickets')) {
-                for ($i = 0; $i < count($request->tickets); $i++) {
-                    $updateTricketPayment = TricketPayment::where('ticket_pid', $request->tickets[$i]['ticket_pid'])->where('event_pid', $event_pid)->first();
-                    $updateTricketPayment->ticket_name    = $request->tickets[$i]['ticket_name'];
-                    $updateTricketPayment->ticket_amount  = $request->tickets[$i]['ticket_amount'];
-                    $updateTricketPayment->remarks        = $request->tickets[$i]['facilities'];
-                    $updateTricketPayment->update();
+                $tickets = json_decode($request->tickets);
+                for ($i = 0; $i < count($tickets); $i++) {
+                    if ($tickets[$i]->ticket_pid) {
+                        $updateTricketPayment = TricketPayment::where('ticket_pid', $tickets[$i]->ticket_pid)->where('event_pid', $event_pid)->first();
+                        $updateTricketPayment->ticket_name    = $tickets[$i]->ticket_name;
+                        $updateTricketPayment->ticket_amount  = $tickets[$i]->ticket_amount;
+                        $updateTricketPayment->remarks        = $tickets[$i]->facilities;
+                        $updateTricketPayment->update();
+                    } else {
+                        $updateTricketPayment = new TricketPayment();
+                        $updateTricketPayment->ticket_name    = $tickets[$i]->ticket_name;
+                        $updateTricketPayment->ticket_amount  = $tickets[$i]->ticket_amount;
+                        $updateTricketPayment->remarks        = $tickets[$i]->facilities;
+                        $updateTricketPayment->save();
+                    }
                 }
             }
 
@@ -374,6 +408,28 @@ class EventController extends BaseController
                 $updateNotification->notification_media = $request->notification_type;
                 $updateNotification->notification_days  = $request->notification_schedule;
                 $updateNotification->update();
+            }
+
+            // banner
+            if ($request->hasFile('banner')) {
+                Attachment::where('ref_pid', $event_pid)->where('ref_object_name', 'events_banner')->delete();
+                $banner_directory = 'attachments/event_banner/' . now()->format('Ymd') . '/';
+                $storeBanImage = $imageUploadService->uploadEventBannerImage($request, $request->event_title, $banner_directory, $event_pid, "events_banner");
+                if ($storeBanImage != 200) {
+                    return (new ErrorResource($storeBanImage, 501))->response()->setStatusCode(501);
+                    abort(500, 'Somthing wrong with Event Image Upload');
+                }
+            }
+
+            // thumnail
+            if ($request->hasFile('thumbnail')) {
+                Attachment::where('ref_pid', $event_pid)->where('ref_object_name', 'events_thumbnail')->delete();
+                $thumbnail_directory = 'attachments/event_thumbnail/' . now()->format('Ymd') . '/';
+                $storeThumImage = $imageUploadService->uploadEventThumnailImage($request, $request->event_title, $thumbnail_directory, $event_pid, "events_thumbnail");
+                if ($storeThumImage != 200) {
+                    return (new ErrorResource($storeThumImage, 501))->response()->setStatusCode(501);
+                    abort(500, 'Somthing wrong with Event Image Upload');
+                }
             }
 
             DB::commit();

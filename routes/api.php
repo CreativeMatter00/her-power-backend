@@ -148,6 +148,7 @@ Route::middleware([EnsureEmailIsVerified::class])->prefix('admin')->group(functi
      */
     Route::prefix('event')->group(function () {
         Route::apiResource('/newEvent', EventController::class);
+        Route::post('/newEvent-update/{event_pid}', [EventController::class, 'update']);
         Route::apiResource('/venue', EventVenueController::class);
         Route::apiResource('/sponsor', EventSponsorController::class);
         Route::POST('sponsor-update/{id}', [EventSponsorController::class, 'update']);

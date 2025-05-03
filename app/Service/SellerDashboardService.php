@@ -192,7 +192,7 @@ where
 
         try {
             $data = [];
-            $querydata = Product::select('product_pid', 'product_name', 'is_sale')->where('enterpenure_pid', $uid)->orderBy('product_pid', 'DESC')->paginate(20);
+            $querydata = Product::select('product_pid', 'product_name', 'is_sale')->where('enterpenure_pid', $uid)->where('active_status', 1)->orderBy('product_pid', 'DESC')->paginate(20);
             $querydata->getCollection()->transform(function ($product) {
                 $averageRating = DB::table('ec_rating as pro')
                     ->select(

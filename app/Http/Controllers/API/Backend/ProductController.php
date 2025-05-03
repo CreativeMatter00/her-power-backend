@@ -26,6 +26,7 @@ class ProductController extends Controller
     {
         $query = Product::with('attachments', 'productvariants')
             ->where('enterpenure_pid', $enterpenure_id)
+            ->where('active_status', 1)
             ->orderBy('ud_serialno', 'asc');
 
         if ($need != null) {
@@ -198,5 +199,24 @@ class ProductController extends Controller
             DB::rollBack();
             return (new ErrorResource('Oops! Something went wrong, Please try again.', 501))->response()->setStatusCode(501);
         }
+    }
+
+    public function destroy(string $product_pid)
+    {
+        $product = Product::where('product_pid', $product_pid)->where('active_status', 1)->first();
+
+        if (!$product) {
+            return (new ErrorResource('Oops! Requested data not found!', 404))->response()->setStatusCode(404);
+        }
+
+        $product->update([
+            'active_status' => 0
+        ]);
+
+        return response()->json([
+            'data' => $product,
+            'message' => 'Product deleted successfully!',
+            'http_status' => 200,
+        ]);
     }
 }

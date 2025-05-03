@@ -65,7 +65,7 @@ class ProductVariantController extends Controller
     public function show(string $id)
     {
         try {
-            $productVariant = ProductVariant::where('product_pid', $id)->orderBy('varient_id','DESC')->get();
+            $productVariant = ProductVariant::where('product_pid', $id)->where('active_status', 1)->orderBy('varient_id','DESC')->get();
 
             return new ApiCommonResponseResource($productVariant, "Data fetched", 200);
         } catch (Exception $e) {
@@ -141,7 +141,6 @@ class ProductVariantController extends Controller
     {
         $deleteData = ProductVariant::where('varient_pid', $id)->delete();
         if ($deleteData) {
-
             return new DeleteResource("Variant Deleted", 204);
         } else {
             return (new ErrorResource("Variant not deleted", 501))->response()->setStatusCode(501);
