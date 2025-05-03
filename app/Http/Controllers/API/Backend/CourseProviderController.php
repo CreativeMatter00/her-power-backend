@@ -229,6 +229,9 @@ class CourseProviderController extends Controller
                 $mentorInfo["providor_name"] ? $insertMentorInfo->providor_name =  $mentorInfo["providor_name"] : null;
                 if ($request->ref_user_pid) {
                     $user_info = Customer::where('user_pid', $request->ref_user_pid)->first();
+                    if (!$user_info) {
+                        $user_info = Seller::where('user_pid', $request->ref_user_pid)->first();
+                    }
                     $insertMentorInfo->ref_user_pid = $request->ref_user_pid;
                     $insertMentorInfo->mobile_no = $user_info->mobile_no;
                     $insertMentorInfo->email_id = $user_info->email;
