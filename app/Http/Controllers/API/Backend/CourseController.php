@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\EduInfo;
 use App\Models\Seller;
 use App\Models\Student;
+use App\Models\User;
 use App\Service\ImageUploadService;
 use Exception;
 use Illuminate\Http\Request;
@@ -265,10 +266,11 @@ class CourseController extends Controller
             if (!$user_info) {
                 $user_info = Seller::where('user_pid', $student_info->ref_user_pid)->first();
             }
+            $user_info->user_email = User::where('user_pid', $user_info->user_pid)->pluck('email')->first();
             $edu_info = EduInfo::where('ref_student_pid', $student_info->student_pid)->get();
             $student->full_name = $student_info->full_name;
-            $student->mobile_no = $student_info->mobile_no;
-            $student->email     = $student_info->email_id;
+            $student->mobile_no = $user_info->mobile_no;
+            $student->email     = $user_info->user_email;
             $student->gender    = $student_info->gender;
             $student->dob       = $student_info->dob;
             $student->address   = $user_info->house_number . ', ' .
