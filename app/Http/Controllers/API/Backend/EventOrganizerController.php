@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\API\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ApiCommonResponseResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Resources\EventOrganizerCollection;
 use App\Http\Resources\EventOrganizerResource;
+use App\Mail\AdminApprovalMail;
 use App\Models\EventOrganizer;
+use App\Models\User;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class EventOrganizerController extends Controller
@@ -20,9 +25,7 @@ class EventOrganizerController extends Controller
      */
     public function index(Request $request)
     {
-
-        $org = EventOrganizer::select('org_pid', 'org_name', 'org_address', 'designation', 'org_type', 'org_website', 'ref_user_pid')
-            ->where('active_status', 1)
+        $org = EventOrganizer::where('active_status', 1)
             ->orderBy('ud_serialno', 'asc')
             ->paginate(10);
 
@@ -193,5 +196,53 @@ class EventOrganizerController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * organizer approval function
+     *
+     * @param  Request  $request
+     * @param  string  $org_pid
+     * @return void
+     */
+    public function organizer_approve_process(Request $request, string $org_pid)
+    {
+        $is_admin = User::where('user_pid', $request->user_pid)->first();
+        if (!$is_admin) {
+            return (new ErrorResource("Oops! You can't approve this user!", 404))->response()->setStatusCode(404);
+        }
+
+        $event_org = EventOrganizer::where('org_pid', $org_pid)->first();
+        if (!$event_org) {
+            return (new ErrorResource("Oops! Organizer not found!", 404))->response()->setStatusCode(404);
+        }
+
+        try {
+            DB::beginTransaction();
+            $event_org->update([
+                'approve_flag'  => $request->approve_status ?? 'N', // 'Y' for Approve, 'C' for Cancel
+                'approve_by'    => $is_admin->user_pid,
+                'approve_date'  => Carbon::now(),
+            ]);
+            DB::commit();
+
+            // mailing process
+            $user_info = User::where('user_pid', $event_org->ref_user_pid)->first();
+            $subject = null;
+            $approve_status = null;
+            if ($request->approve_status == 'C') {
+                $subject = 'Event Organizer register request Cancel by Admin';
+                $approve_status = 'Canceled';
+            } else {
+                $subject = 'Event Organizer register request Approved by Admin';
+                $approve_status = 'Approved';
+            }
+            Mail::to($user_info->email)->send(new AdminApprovalMail($user_info, $subject, 'Event Organizer', $approve_status));
+            return (new ApiCommonResponseResource($event_org, 'Event Organizer ' . $approve_status . ' successfully!', 200))->response()->setStatusCode(200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return (new ErrorResource('Oops! Something went wrong!', 501))->response()->setStatusCode(501);
+        }
     }
 }

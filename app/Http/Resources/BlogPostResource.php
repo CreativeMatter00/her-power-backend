@@ -28,7 +28,7 @@ class BlogPostResource extends JsonResource
         $total_comment = BlogPost::with(['comments' => function ($query) {
             $query->where('parent_comment_pid', null)->where('active_status', 1);
         }])->where('bpost_pid', $this->bpost_pid)
-            ->where('active_status', 1)->get()[0]->comments->count();
+            ->where('active_status', 1)->where('approve_flag', 'Y')->get()[0]->comments->count();
 
         $array = [
             'bpost_id'          => $this->bpost_id,

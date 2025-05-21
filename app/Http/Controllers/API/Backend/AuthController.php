@@ -50,7 +50,6 @@ class AuthController extends BaseController
 
     public function login(Request $request)
     {
-
         $validator = Validator::make($request->all(), [
             'email' => 'required',
             'password' => 'required',
@@ -58,58 +57,70 @@ class AuthController extends BaseController
         if ($validator->fails()) {
             return $this->sendError('Validation Error.', $validator->errors(), 400);
         } else {
-
             if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
                 $user = Auth::user();
 
-                if ($user->email_verified) {
-                    $success['token'] = $user->createToken('ATI-LIMITED_HER_POWER')->accessToken;
-                    $success['name'] =  $user->name;
-                    $isCustomer = User::select('ec_customer.customer_pid as customer_pid', 'ec_customer.user_pid as iscus', 'users.user_pid')->where('id', $user->id)->leftJoin('ec_customer', 'users.user_pid', '=', 'ec_customer.user_pid')->first();
-                    $isSeller = User::select('ec_enterpenure.enterpenure_pid as enterpenure_pid', 'ec_enterpenure.user_pid as isseller')->where('id', $user->id)->leftJoin('ec_enterpenure', 'users.user_pid', '=', 'ec_enterpenure.user_pid')->first();
-                    $isOrganizer = EventOrganizer::where('ref_user_pid', $user->user_pid)->first();
-                    $isCourseProvider = CourseProvider::select('providor_pid')->where('ref_user_pid', $user->user_pid)->first();
-                    $isStudent = Student::select('student_pid')->where('ref_user_pid', $user->user_pid)->first();
-                    $isJobProvider = JobProvider::select('jobprovider_pid')->where('user_pid', $user->user_pid)->first();
-                    $isJobSeeker = JobSeeker::select('profile_pid')->where('user_pid', $user->user_pid)->first();
-                    $profilePhoto = Attachment::select('file_url')->where('ref_pid', $isCustomer->user_pid)->first();
-                    $success['user_pid'] = $isCustomer->user_pid;
-                    $success['isCustomer'] = $isCustomer->iscus ? true : false;
-                    $success['customer_pid'] = $isCustomer->customer_pid ? $isCustomer->customer_pid : null;
-                    $success['isSeller'] = $isSeller->isseller ? true : false;
-                    $success['isOrganizer'] = (bool) $isOrganizer;
-                    $success['isOrganizer_pid'] = $isOrganizer ? $isOrganizer->org_pid : null;
-                    $success['enterpenure_pid'] = $isSeller->enterpenure_pid ? $isSeller->enterpenure_pid : null;
-                    if ($isCourseProvider) {
-                        $success['isCourseProvider'] = (bool) $isCourseProvider;
-                        $success['providor_pid'] = $isCourseProvider->providor_pid;
-                    }
-                    if ($isStudent) {
-                        $success['isStudent'] = (bool) $isStudent;
-                        $success['student_pid'] = $isStudent->student_pid;
-                    }
-                    if ($isJobProvider) {
-                        $success['isJobProvider'] = (bool) $isJobProvider;
-                        $success['jobprovider_pid'] = $isJobProvider->jobprovider_pid;
-                    }
-                    if ($isJobSeeker) {
-                        $success['isJobSeeker'] = (bool) $isJobSeeker;
-                        $success['profile_pid'] = $isJobSeeker->profile_pid;
-                    }
-
-                    if ($profilePhoto) {
-                        $success['profile_photo'] = asset('/public/' . $profilePhoto->file_url);
-                    } else {
-                        $success['profile_photo'] = null;
-                    }
+                $is_approved_seller = Seller::where('user_pid', $user->user_pid)->pluck('approve_flag')->first();
+                $is_customer = Customer::where('user_pid', $user->user_pid)->first();
+                if ($is_approved_seller == 'Y' && $user->email_verified) {
+                    $success = $this->user_info($user);
+                    return $this->sendResponse($success, 'Seller login successfully.');
+                } else if ($is_customer && $user->email_verified) {
+                    $success = $this->user_info($user);
                     return $this->sendResponse($success, 'User login successfully.');
                 } else {
-                    return (new ErrorResource("Your email address is not verified.", 403))->response()->setStatusCode(403);
+                    Auth::logout();
+                    return (new ErrorResource("Your email or approval is not verified.", 403))->response()->setStatusCode(403);
                 }
             } else {
                 return $this->sendError('Unauthorized.', ['error' => 'Invalid User Name or Password'], 401);
             }
         }
+    }
+
+    public function user_info($user)
+    {
+        $success['name'] =  $user->name;
+        $success['token'] = $user->createToken('ATI-LIMITED_HER_POWER')->accessToken;
+        $isCustomer = User::select('ec_customer.customer_pid as customer_pid', 'ec_customer.user_pid as iscus', 'users.user_pid')->where('id', $user->id)->leftJoin('ec_customer', 'users.user_pid', '=', 'ec_customer.user_pid')->first();
+        $isSeller = Seller::where('user_pid', $user->user_pid)->where('approve_flag', 'Y')->first();
+        $isOrganizer = EventOrganizer::where('ref_user_pid', $user->user_pid)->where('approve_flag', 'Y')->first();
+        $isCourseProvider = CourseProvider::select('providor_pid')->where('ref_user_pid', $user->user_pid)->where('approve_flag', 'Y')->first();
+        $isStudent = Student::select('student_pid')->where('ref_user_pid', $user->user_pid)->first();
+        $isJobProvider = JobProvider::select('jobprovider_pid')->where('user_pid', $user->user_pid)->where('approve_flag', 'Y')->first();
+        $isJobSeeker = JobSeeker::select('profile_pid')->where('user_pid', $user->user_pid)->first();
+        $profilePhoto = Attachment::select('file_url')->where('ref_pid', $isCustomer->user_pid)->first();
+        $success['user_pid'] = $isCustomer->user_pid;
+        $success['isCustomer'] = $isCustomer->iscus ? true : false;
+        $success['customer_pid'] = $isCustomer->customer_pid ? $isCustomer->customer_pid : null;
+        $success['isSeller'] = $isSeller ? true : false;
+        $success['enterpenure_pid'] = $isSeller->enterpenure_pid ?? null;
+        $success['isOrganizer'] = (bool) $isOrganizer;
+        $success['isOrganizer_pid'] = $isOrganizer ? $isOrganizer->org_pid : null;
+        if ($isCourseProvider) {
+            $success['isCourseProvider'] = (bool) $isCourseProvider;
+            $success['providor_pid'] = $isCourseProvider->providor_pid;
+        }
+        if ($isStudent) {
+            $success['isStudent'] = (bool) $isStudent;
+            $success['student_pid'] = $isStudent->student_pid;
+        }
+        if ($isJobProvider) {
+            $success['isJobProvider'] = (bool) $isJobProvider;
+            $success['jobprovider_pid'] = $isJobProvider->jobprovider_pid;
+        }
+        if ($isJobSeeker) {
+            $success['isJobSeeker'] = (bool) $isJobSeeker;
+            $success['profile_pid'] = $isJobSeeker->profile_pid;
+        }
+
+        if ($profilePhoto) {
+            $success['profile_photo'] = asset('/public/' . $profilePhoto->file_url);
+        } else {
+            $success['profile_photo'] = null;
+        }
+
+        return $success;
     }
 
     /**
@@ -264,7 +275,8 @@ class AuthController extends BaseController
         if ($is_exist) {
 
             $verified = $is_exist->email_verified;
-            if (!$verified) {
+            $admin_approved = Seller::where('user_pid', $is_exist->user_pid)->pluck('approve_flag')->first();
+            if (!$verified && $admin_approved != 'Y') {
 
                 // expire check
                 if (Carbon::now()->lessThan($is_exist->otp_expires_at)) {

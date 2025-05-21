@@ -5,15 +5,19 @@ namespace App\Http\Controllers\API\Backend;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ApiCommonResponseResource;
 use App\Http\Resources\ErrorResource;
+use App\Mail\AdminApprovalMail;
 use App\Models\Branch;
 use App\Models\CourseProvider;
 use App\Models\Customer;
 use App\Models\EduInfo;
 use App\Models\Seller;
+use App\Models\User;
 use App\Models\WorkExperience;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class CourseProviderController extends Controller
@@ -28,9 +32,9 @@ class CourseProviderController extends Controller
     {
         try {
             if ($need == null) {
-                $provider = CourseProvider::all();
+                $provider = CourseProvider::orderByRaw("CASE WHEN approve_flag = 'N' THEN 0 ELSE 1 END")->get();
             } else {
-                $provider = CourseProvider::paginate($need);
+                $provider = CourseProvider::orderByRaw("CASE WHEN approve_flag = 'N' THEN 0 ELSE 1 END")->paginate($need);
             }
 
             if (!$provider) {
@@ -394,5 +398,46 @@ class CourseProviderController extends Controller
             'active_status' => 0
         ]);
         return (new ApiCommonResponseResource($branch, "Branch Info Deleted Successfully", 200))->response()->setStatusCode(200);
+    }
+
+    public function course_provider_approve_process(Request $request, $provider_pid)
+    {
+        $is_admin = User::where('user_pid', $request->user_pid)->first();
+        if (!$is_admin) {
+            return (new ErrorResource("Oops! You can't approve this user!", 404))->response()->setStatusCode(404);
+        }
+
+        $provider_info = CourseProvider::where('providor_pid', $provider_pid)->first();
+        if (!$provider_info) {
+            return (new ErrorResource("Oops! Course Provider not found!", 404))->response()->setStatusCode(404);
+        }
+
+        try {
+            DB::beginTransaction();
+            $provider_info->update([
+                'approve_flag'  => $request->approve_status ?? 'N', // 'Y' for Approve, 'C' for Cancel
+                'approve_by'    => $is_admin->user_pid,
+                'approve_date'  => Carbon::now(),
+            ]);
+            DB::commit();
+
+            // mailing process
+            $user_info = User::where('user_pid', $provider_info->ref_user_pid)->first();
+            $subject = null;
+            $approve_status = null;
+            if ($request->approve_status == 'C') {
+                $subject = 'Course Provider register request Cancel by Admin';
+                $approve_status = 'Canceled';
+            } else {
+                $subject = 'Course Provider register request Approved by Admin';
+                $approve_status = 'Approved';
+            }
+            Mail::to($user_info->email)->send(new AdminApprovalMail($user_info, $subject, 'Course Provider', $approve_status));
+            return (new ApiCommonResponseResource($provider_info, 'Course Provider ' . $approve_status . ' successfully!', 200))->response()->setStatusCode(200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return (new ErrorResource($th->getMessage(), 501))->response()->setStatusCode(501);
+        }
     }
 }

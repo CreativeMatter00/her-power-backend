@@ -79,9 +79,8 @@ Route::post('otp-verify', [AuthController::class, 'otpVerify']);
  * rafaat@atilimited.net
  */
 
-// Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->group(function () {
+Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->group(function () {
 
-Route::middleware([EnsureEmailIsVerified::class])->prefix('admin')->group(function () {
     /**
      * This Routes needs authorization before take any action.
      */
@@ -132,12 +131,19 @@ Route::middleware([EnsureEmailIsVerified::class])->prefix('admin')->group(functi
     Route::apiResource('/student', StudentController::class);
     Route::get('/students/{need?}', [StudentController::class, 'index']);
     Route::apiResource('/mentor', MentorController::class);
+
+    Route::post('/course-provider', [CourseProviderController::class, 'index']);
+    Route::post('/course-provider', [CourseProviderController::class, 'store']);
+    Route::apiResource('/course-provider', CourseProviderController::class);
     Route::apiResource('/course-category', CourseCategoryController::class);
     Route::apiResource('/course', CourseController::class);
-    Route::apiResource('/course-provider', CourseProviderController::class);
     Route::get('course-providers/{need?}', [CourseProviderController::class, 'index']);
     Route::apiResource('/course-lessons', CourseVideoUploadAndProcessingController::class);
     Route::get('/course-lesson/{id}', [CourseVideoUploadAndProcessingController::class, 'course_lesson']);
+    Route::middleware('course_provider')->group(function () {
+        // 
+    });
+
     Route::apiResource('/branch', BranchController::class);
     Route::get('/recent-notifications/{id}', [NotificationController::class, 'recentNotifications']);
     Route::get('/all-notifications/{id}', [NotificationController::class, 'allNotifications']);
@@ -167,14 +173,8 @@ Route::middleware([EnsureEmailIsVerified::class])->prefix('admin')->group(functi
     Route::get('/event-perticipant/{event_pid}', [FrontendEventController::class, 'perticipant']);
     Route::get('/search-event', [FrontendEventController::class, 'search_event']);
     Route::get('/event-by-participant/{id}', [FrontendEventController::class, 'event_by_participant']);
-
     Route::get('/users-of-event/{id}', [FrontendEventController::class, 'users_of_event']);
-    Route::get('/course-by-student/{id}', [CourseController::class, 'get_course_by_student']);
-    Route::get('/provider-details/{provider_pid}', [CourseController::class, 'provider_details']);
 
-    Route::delete('/experience-delete/{experience_pid}', [CourseProviderController::class, 'destroy_experience']);
-    Route::delete('/education-delete/{education_pid}', [CourseProviderController::class, 'destroy_education']);
-    Route::delete('/branch-delete/{branch_pid}', [CourseProviderController::class, 'destroy_branch']);
     Route::delete('/job-edu-delete/{job_edu_pid}', [JobController::class, 'destroy_job_edu']);
     Route::delete('/job-skill-delete/{job_skill_pid}', [JobController::class, 'destroy_job_skill']);
     Route::delete('/job-experience-delete/{job_exp_pid}', [JobController::class, 'destroy_job_exp']);
@@ -261,8 +261,23 @@ Route::middleware([EnsureEmailIsVerified::class])->prefix('admin')->group(functi
     Route::post('/challange-update/{id}', [ChallengesController::class, 'update']);
     Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
     Route::get('/challenge-manage/{user_pid}/{need?}', [ChallengesController::class, 'challengeManage']);
+
+    /**
+     * Approve process
+     */
+    Route::post('/seller-approve/{seller_pid}', [EntrepreneurController::class, 'seller_approve_process']);
+    Route::post('/course-provider-approve/{provider_pid}', [CourseProviderController::class, 'course_provider_approve_process']);
+    Route::post('/job-provider-approve/{provider_pid}', [JobController::class, 'job_provider_approve_process']);
+    Route::post('/organizer-approve/{org_pid}', [EventOrganizerController::class, 'organizer_approve_process']);
+    Route::post('/blog-approve/{blog_pid}', [BlogPostController::class, 'blog_approve_process']);
+
+    /**
+     * Admin manage content APIs
+     */
+    Route::get('/admin-blog-post', [BlogPostController::class, 'allBlogsForAdmin']);
+    // Route::get('/get-all-products/{need?}', [ProductController::class, 'get_all_products']);
+
 });
-// });
 
 /**
  * All Backend Controller Route end.
@@ -300,6 +315,8 @@ Route::prefix('frontend')->group(function () {
     Route::get('/products-by-category-id/{cid}', [FrontendProductController::class, 'productByCategoryid']);
     Route::get('/customer-product-filter', [FrontendProductController::class, 'productFilter']);
     Route::POST('/cart-calculation', [CartController::class, 'calculationCartItems']);
+
+    // Course API
     Route::get('/get-course', [FrontendCourseController::class, 'getCourse']);
     Route::get('/get-course-details/{courseid}', [FrontendCourseController::class, 'getCourseDetails']);
     Route::get('/get-course-by-mentor/{mentorid}', [FrontendCourseController::class, 'getCourseByMentor']);
@@ -307,6 +324,16 @@ Route::prefix('frontend')->group(function () {
     Route::get('/get-student-enrolled-course/{studentid}', [FrontendCourseController::class, 'getStudentEnrolledCourse']);
     Route::get('/get-student-enrolled/{need?}', [FrontendCourseController::class, 'getStudentEnrolled']);
     Route::get('/search-course', [FrontendCourseController::class, 'searchCourseMentorOrTittleWise']);
+    Route::get('/course-by-user_id/{user_pid}', [FrontendCourseController::class, 'course_by_user_pid']);
+    Route::get('/course-by-student/{id}', [CourseController::class, 'get_course_by_student']);
+    Route::get('/provider-details/{provider_pid}', [CourseController::class, 'provider_details']);
+    Route::delete('/experience-delete/{experience_pid}', [CourseProviderController::class, 'destroy_experience']);
+    Route::delete('/education-delete/{education_pid}', [CourseProviderController::class, 'destroy_education']);
+    Route::delete('/branch-delete/{branch_pid}', [CourseProviderController::class, 'destroy_branch']);
+    Route::middleware(['auth:api', 'course_provider'])->group(function () {
+        // 
+    });
+
     Route::apiResource('/student', FrontendStudentController::class);
     Route::apiResource('/mentor', FrontendMentorController::class);
     Route::apiResource('/branch', BranchController::class);
@@ -329,9 +356,6 @@ Route::prefix('frontend')->group(function () {
     Route::get('/post-events-all', [FrontendEventController::class, 'post_events_all']);
     Route::get('/events-by-division/{code}', [FrontendEventController::class, 'events_by_division']);
     Route::get('/events-by-monthyear/{month}/{year}', [FrontendEventController::class, 'events_by_month_year']);
-
-    // Course API
-    Route::get('/course-by-user_id/{user_pid}', [FrontendCourseController::class, 'course_by_user_pid']);
 });
 /**
  * All Frontend Controller Route end.
@@ -344,12 +368,16 @@ Route::prefix('frontend')->group(function () {
  * @author moazzem <moazzem@atilimited.net>
  * @since 03.02.2025
  */
-Route::get('/get-all-job-providers/{need?}', [JobController::class, 'getJobProvider']);
 Route::post('/job-provider-register', [JobController::class, 'jobProviderStore']);
+Route::get('/get-all-job-providers/{need?}', [JobController::class, 'getJobProvider']);
 Route::get('/get-job-provider/{id}', [JobController::class, 'getJobProviderById']);
 Route::post('/job-provider-update/{id}', [JobController::class, 'updateJobProvider']);
 Route::get('/get-jobs-by-provider/{id}', [JobController::class, 'getJobsByProviderId']);
 Route::get('/get-task-by-provider/{id}', [TaskController::class, 'getTasksByJobProviderId']);
+Route::middleware(['auth:api', 'job_provider'])->group(function () {
+    // 
+});
+
 
 /**
  * @api Job Seeker

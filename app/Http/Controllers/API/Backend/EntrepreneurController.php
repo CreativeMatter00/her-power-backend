@@ -7,7 +7,10 @@ use App\Http\Resources\ApiCommonResponseResource;
 use App\Http\Resources\CommonResourceWithoutNullFilter;
 use App\Http\Resources\ErrorResource;
 use App\Http\Resources\EntrepreneurResource;
+use App\Mail\AdminApprovalMail;
 use App\Models\Entrepreneur;
+use App\Models\Seller;
+use App\Models\User;
 use App\Service\ImageUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,7 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Exception;
-
+use Illuminate\Support\Facades\Mail;
 
 class EntrepreneurController extends Controller
 {
@@ -103,7 +106,7 @@ class EntrepreneurController extends Controller
      */
     public function update(Request $request, string $id)
     {
-
+        // 
     }
 
 
@@ -242,6 +245,48 @@ class EntrepreneurController extends Controller
             return new ApiCommonResponseResource($sellerInfo, "Update Successfully", 200);
         } else {
             return (new ErrorResource('Seller not found.', 404))->response()->setStatusCode(404);
+        }
+    }
+
+    public function seller_approve_process(Request $request, string $seller_pid)
+    {
+
+        $is_admin = User::where('user_pid', $request->user_pid)->first();
+        if (!$is_admin) {
+            return (new ErrorResource("Oops! You can't approve this user!", 404))->response()->setStatusCode(404);
+        }
+
+        $seller_info = Seller::where('enterpenure_pid', $seller_pid)->first();
+        if (!$seller_info) {
+            return (new ErrorResource("Oops! Seller not found!", 404))->response()->setStatusCode(404);
+        }
+
+        try {
+            DB::beginTransaction();
+            $seller_info->update([
+                'approve_flag'  => $request->approve_status ?? 'N', // 'Y' for Approve, 'C' for Cancel
+                'approve_by'    => $is_admin->user_pid,
+                'approve_date'  => Carbon::now(),
+            ]);
+            DB::commit();
+
+            // mailing process
+            $user_info = User::where('user_pid', $seller_info->user_pid)->first();
+            $subject = null;
+            $approve_status = null;
+            if ($request->approve_status == 'C') {
+                $subject = 'Seller register request Cancel by Admin';
+                $approve_status = 'Canceled';
+            } else {
+                $subject = 'Seller register request Approved by Admin';
+                $approve_status = 'Approved';
+            }
+            Mail::to($user_info->email)->send(new AdminApprovalMail($user_info, $subject, 'Seller', $approve_status));
+            return (new ApiCommonResponseResource($seller_info, 'Seller ' . $approve_status . ' successfully!', 200))->response()->setStatusCode(200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return (new ErrorResource('Oops! Something went wrong!', 501))->response()->setStatusCode(501);
         }
     }
 }

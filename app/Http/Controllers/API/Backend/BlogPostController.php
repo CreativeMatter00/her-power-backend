@@ -12,6 +12,7 @@ use App\Models\BlogPost;
 use App\Models\Comments;
 use App\Models\Document;
 use App\Models\ResourceLibraryVideo;
+use App\Models\User;
 use App\Service\AttachmentService;
 use App\Service\ImageUploadService;
 use Carbon\Carbon;
@@ -114,7 +115,7 @@ class BlogPostController extends Controller
         }
 
         // exist or not
-        $is_exist = BlogPost::where('active_status', 1)->where('bpost_pid', $id)->first();
+        $is_exist = BlogPost::where('active_status', 1)->where('approve_flag', 'Y')->where('bpost_pid', $id)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }
@@ -192,7 +193,7 @@ class BlogPostController extends Controller
      */
     public function homepage()
     {
-        $data = BlogPost::with('documents')->where('active_status', 1)->orderBy('cre_date', 'desc')->take(9)->get();
+        $data = BlogPost::with('documents')->where('active_status', 1)->where('approve_flag', 'Y')->orderBy('cre_date', 'desc')->take(9)->get();
 
         if (empty($data)) {
             return (new ErrorResource('Sorry! Blog Post not found.', 400))->response()->setStatusCode(400);
@@ -209,7 +210,7 @@ class BlogPostController extends Controller
      */
     public function allBlogs()
     {
-        $data = BlogPost::with('documents')->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate(12);
+        $data = BlogPost::with('documents')->where('active_status', 1)->where('approve_flag', 'Y')->orderBy('cre_date', 'desc')->paginate(12);
 
         if (empty($data)) {
             return (new ErrorResource('Sorry! Blog Post not found.', 400))->response()->setStatusCode(400);
@@ -234,12 +235,12 @@ class BlogPostController extends Controller
             $data = BlogPost::with(['documents', 'comments' => function ($query) {
                 $query->where('parent_comment_pid', null)
                     ->where('active_status', 1);
-            }])->where('bpost_pid', $id)->where('active_status', 1)->first();
+            }])->where('bpost_pid', $id)->where('active_status', 1)->where('approve_flag', 'Y')->first();
         } else {
             $data = BlogPost::with(['documents', 'comments' => function ($query) use ($need) {
                 $query->where('parent_comment_pid', null)
                     ->where('active_status', 1)->take($need)->get();
-            }])->where('bpost_pid', $id)->where('active_status', 1)->first();
+            }])->where('bpost_pid', $id)->where('active_status', 1)->where('approve_flag', 'Y')->first();
         }
 
 
@@ -354,7 +355,7 @@ class BlogPostController extends Controller
         }
 
         // exist or not
-        $is_exist = BlogPost::where('user_pid', $user_pid)->where('active_status', 1)->where('bpost_pid', $bpost_pid)->first();
+        $is_exist = BlogPost::where('user_pid', $user_pid)->where('active_status', 1)->where('approve_flag', 'Y')->where('bpost_pid', $bpost_pid)->first();
         if (empty($is_exist)) {
             return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
         }
@@ -448,7 +449,7 @@ class BlogPostController extends Controller
      */
     public function get_vbad_by_user(string $user_pid, int $need = 10)
     {
-        $blog = BlogPost::with('documents')->where('user_pid', $user_pid)->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate($need);
+        $blog = BlogPost::with('documents')->where('user_pid', $user_pid)->where('active_status', 1)->where('approve_flag', 'Y')->orderBy('cre_date', 'desc')->paginate($need);
         $video = ResourceLibraryVideo::with('documents')->where('user_pid', $user_pid)->where('post_type', 'Video')->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate($need);
         $article = Article::with('documents')->where('user_pid', $user_pid)->where('post_type', 'Article')->where('active_status', 1)->orderBy('cre_date', 'desc')->paginate($need);
         $documents = Article::with('documents')->where('user_pid', $user_pid)->where('active_status', 1)->where('post_type', 'Document')->orderBy('cre_date', 'desc')->paginate($need);
@@ -464,5 +465,56 @@ class BlogPostController extends Controller
             'articles' => $article_result->original,
             'documents' => $documents_result,
         );
+    }
+
+    public function blog_approve_process(Request $request, string $blog_pid)
+    {
+        $is_admin = User::where('user_pid', $request->user_pid)->first();
+        if (!$is_admin) {
+            return (new ErrorResource("Oops! You can't approve this user!", 404))->response()->setStatusCode(404);
+        }
+
+        $blog_info = BlogPost::where('bpost_pid', $blog_pid)->first();
+        if (!$blog_info) {
+            return (new ErrorResource("Oops! Blog Post not found!", 404))->response()->setStatusCode(404);
+        }
+
+        try {
+            DB::beginTransaction();
+            $blog_info->update([
+                'approve_flag'  => $request->approve_status ?? 'N', // 'Y' for Approve, 'C' for Cancel
+                'approve_by'    => $is_admin->user_pid,
+                'approve_date'  => Carbon::now(),
+            ]);
+            DB::commit();
+
+            if ($request->approve_status == 'Y') {
+                $approve_status = 'Approved';
+            } else {
+                $approve_status = 'Canceled';
+            }
+            return (new ApiCommonResponseResource($blog_info, 'Blog Post ' . $approve_status . ' successfully!', 200))->response()->setStatusCode(200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return (new ErrorResource('Oops! Something went wrong!', 501))->response()->setStatusCode(501);
+        }
+    }
+
+    /**
+     * All Blog Post function
+     *
+     * @return void
+     */
+    public function allBlogsForAdmin()
+    {
+        $data = BlogPost::with('documents')->where('approve_flag', 'Y')->orderBy('cre_date', 'desc')->paginate(12);
+
+        if (empty($data)) {
+            return (new ErrorResource('Sorry! Blog Post not found.', 400))->response()->setStatusCode(400);
+        }
+
+        $result = AttachmentService::returnWithBannerAndThumbnail($data, 'Blog Post');
+        return $result;
     }
 }

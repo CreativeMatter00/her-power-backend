@@ -119,7 +119,7 @@ class EventController extends BaseController
                     $scheduleData = [];
 
                     // Helper function to prepare schedule data
-                    function prepareScheduleData($event_pid, $data)
+                    function prepareScheduleData($event_pid, $data, $type)
                     {
                         return [
                             'event_pid'      => $event_pid,
@@ -131,7 +131,7 @@ class EventController extends BaseController
                             'segment_name'   => $data->segment_name ?? null,
                             'speaker_pid'    => $data->speaker_pid ?? null,
                             // 'ud_serialno'    => $data->ud_serialno ?? null,
-                            // 'remarks'        => $data->remarks ?? null,
+                            'remarks'        => $type,
                             // 'pid_currdate'   => $data->pid_currdate ?? null,
                             // 'pid_prefix'     => $data->pid_prefix ?? null,
                             // 'cre_by'        => $data->cre_by ?? Auth::user()->user_pid,
@@ -142,16 +142,16 @@ class EventController extends BaseController
 
                     if (!isset($request->breakdown) && !isset($request->multidate)) {
                         $single_day = json_decode($request->singleday);
-                        $scheduleData[] = prepareScheduleData($event_pid, $single_day);
+                        $scheduleData[] = prepareScheduleData($event_pid, $single_day, 'singledate');
                     } elseif (!isset($request->breakdown) && isset($request->multidate)) {
                         $multidate = json_decode($request->multidate);
                         foreach ($multidate as $day) {
-                            $scheduleData[] = prepareScheduleData($event_pid, $day);
+                            $scheduleData[] = prepareScheduleData($event_pid, $day, 'multidate');
                         }
                     } elseif (isset($request->breakdown) && !isset($request->multidate)) {
                         $breakdown = json_decode($request->breakdown);
                         foreach ($breakdown as $day) {
-                            $scheduleData[] = prepareScheduleData($event_pid, $day);
+                            $scheduleData[] = prepareScheduleData($event_pid, $day, 'breakdown');
                         }
                     }
 

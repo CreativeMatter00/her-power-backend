@@ -7,6 +7,7 @@ use App\Http\Resources\ApiCommonResponseResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Resources\JobCollection;
 use App\Http\Resources\TaskCollection;
+use App\Mail\AdminApprovalMail;
 use App\Models\EduInfo;
 use App\Models\JobPost;
 use App\Models\JobProvider;
@@ -17,14 +18,17 @@ use App\Models\JobSeekerSkill;
 use App\Models\Mentor;
 use App\Models\SeekerEduInfo;
 use App\Models\TaskPost;
+use App\Models\User;
 use App\Models\WorkExperience;
 use App\Service\ImageUploadService;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Console\View\Components\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\VarDumper\VarDumper;
 
@@ -770,6 +774,52 @@ class JobController extends Controller
             return (new ApiCommonResponseResource($jobSeeker, "Job Seeker fetched successfully.", 200))->response()->setStatusCode(200);
         } catch (Exception $e) {
             return (new ErrorResource('Oops! Something was wrong, Please try again.', 501))->response()->setStatusCode(501);
+        }
+    }
+
+    /**
+     * Job Provider Approve function
+     *
+     * @author shohag <shohag@atilimited.net>
+     */
+    public function job_provider_approve_process(Request $request, string $provider_pid)
+    {
+        $is_admin = User::where('user_pid', $request->user_pid)->first();
+        if (!$is_admin) {
+            return (new ErrorResource("Oops! You can't approve this user!", 404))->response()->setStatusCode(404);
+        }
+
+        $provider_info = JobProvider::where('jobprovider_pid', $provider_pid)->first();
+        if (!$provider_info) {
+            return (new ErrorResource("Oops! Job Provider not found!", 404))->response()->setStatusCode(404);
+        }
+
+        try {
+            DB::beginTransaction();
+            $provider_info->update([
+                'approve_flag'  => $request->approve_status ?? 'N', // 'Y' for Approve, 'C' for Cancel
+                'approve_by'    => $is_admin->user_pid,
+                'approve_date'  => Carbon::now(),
+            ]);
+            DB::commit();
+
+            // mailing process
+            $user_info = User::where('user_pid', $provider_info->user_pid)->first();
+            $subject = null;
+            $approve_status = null;
+            if ($request->approve_status == 'C') {
+                $subject = 'Job Provider register request Cancel by Admin';
+                $approve_status = 'Canceled';
+            } else {
+                $subject = 'Job Provider register request Approved by Admin';
+                $approve_status = 'Approved';
+            }
+            Mail::to($user_info->email)->send(new AdminApprovalMail($user_info, $subject, 'Job Provider', $approve_status));
+            return (new ApiCommonResponseResource($provider_info, 'Job Provider ' . $approve_status . ' successfully!', 200))->response()->setStatusCode(200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return (new ErrorResource('Oops! Something went wrong!', 501))->response()->setStatusCode(501);
         }
     }
 }
