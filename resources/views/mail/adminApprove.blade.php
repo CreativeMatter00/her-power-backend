@@ -39,8 +39,8 @@
             <h3 style="text-align: center">{{ $user_type }} Approval Response</h3>
             <p>Hello {{ $user_info->name }},</p>
 
-            <p>We regret to inform you that your approval request has been <strong>{{ $approve_status }}</strong> by the
-                Administrator.
+            <p>
+                We are pleased to inform you that, Your approval request has been <strong>{{ $approve_status }}</strong> by the Administrator.
             </p>
             <br />
             <p>If your need any help, please contact our support team.</p>

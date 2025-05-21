@@ -298,10 +298,114 @@ class UserController extends Controller
         return (new ApiCommonResponseResource($users, "User fatch successfully", 201))->response()->setStatusCode(201);
     }
 
+    /**
+     * get all seller function
+     * @author shohag <shohag@atilimited.net>
+     * @return void
+     */
     public function getAllseller()
     {
+        $basePath = asset('/public/');
 
-        $allSellerUserId = DB::select("select * from users u LEFT JOIN ec_enterpenure ep on u.user_pid = ep.user_pid where u.user_pid in ( select cs.user_pid from ec_enterpenure cs where cs.user_pid = u.user_pid )");
-        return $allSellerUserId;
+        $seller_info = DB::select("SELECT 
+                                en.enterpenure_id,
+                                en.enterpenure_pid,
+                                en.user_pid,
+                                en.salutation,
+                                en.fname,
+                                en.lname,
+                                en.full_name,
+                                en.father_name,
+                                en.mother_name,
+                                en.gender,
+                                en.dob,
+                                en.mobile_no,
+                                en.skill,
+                                en.last_education,
+                                en.shop_name,
+                                en.business_name,
+                                en.store_name,
+                                en.product_category,
+                                en.address_line,
+                                en.location_pid,
+                                en.house_number,
+                                en.street_name,
+                                en.area_name,
+                                en.city_name,
+                                en.zip_postal_code,
+                                en.bank_name,
+                                en.bank_code,
+                                en.account_holder_name,
+                                en.account_number,
+                                CASE 
+                                    WHEN af.file_url != '' THEN CONCAT('$basePath/', af.file_url) 
+                                    ELSE NULL 
+                                END as profile_photo,
+                                CASE 
+                                    WHEN en.nidimage_front_side != '' THEN CONCAT('$basePath/', en.nidimage_front_side) 
+                                    ELSE NULL 
+                                END as nidimage_front_side,
+                                CASE 
+                                    WHEN en.nidimage_back_side != '' THEN CONCAT('$basePath/', en.nidimage_back_side) 
+                                    ELSE NULL 
+                                END as nidimage_back_side,
+                                CASE 
+                                    WHEN en.tin_certificate_image != '' THEN CONCAT('$basePath/', en.tin_certificate_image) 
+                                    ELSE NULL 
+                                END as tin_certificate_image,
+                                CASE 
+                                    WHEN en.signature_image != '' THEN CONCAT('$basePath/', en.signature_image) 
+                                    ELSE NULL 
+                                END as signature_image,
+                                CASE 
+                                    WHEN en.trade_license_image != '' THEN CONCAT('$basePath/', en.trade_license_image) 
+                                    ELSE NULL 
+                                END as trade_license_image,
+                                CASE 
+                                    WHEN en.tax_id_image != '' THEN CONCAT('$basePath/', en.tax_id_image) 
+                                    ELSE NULL 
+                                END as tax_id_image,
+                                CASE 
+                                    WHEN en.vat_id_image != '' THEN CONCAT('$basePath/', en.vat_id_image) 
+                                    ELSE NULL 
+                                END as vat_id_image,
+                                en.trade_licence,
+                                en.tax_id,
+                                en.vat_id,
+                                en.bin_id,
+                                en.account_type,
+                                en.sell_other_websites,
+                                en.sell_other_ecommerce,
+                                en.own_ecommerce_site,
+                                en.product_from,
+                                en.annual_turnover,
+                                en.number_product_sell,
+                                en.user_name,
+                                en.email,
+                                en.email_verified_at,
+                                en.remember_token,
+                                en.ref_pid,
+                                en.customer_pid,
+                                en.ud_serialno,
+                                en.remarks,
+                                en.pid_currdate,
+                                en.pid_prefix,
+                                en.cre_date,
+                                en.cre_by,
+                                en.upd_date,
+                                en.upd_by,
+                                en.active_status,
+                                en.unit_no,
+                                u.user_pid,
+                                u.email,
+                                u.name
+                                FROM ec_enterpenure en
+                                LEFT JOIN users as u on en.user_pid = u.user_pid
+                                LEFT JOIN attached_file af on en.user_pid = af.ref_pid");
+
+        if (empty($seller_info)) {
+            return (new ErrorResource('Sorry! Seller not found.', 404))->response()->setStatusCode(404);
+        }
+        return (new ApiCommonResponseResource($seller_info, "Seller fatch successfully", 200))->response()->setStatusCode(200);
     }
 }
