@@ -508,7 +508,7 @@ class BlogPostController extends Controller
      */
     public function allBlogsForAdmin()
     {
-        $data = BlogPost::with('documents')->where('approve_flag', 'Y')->orderBy('cre_date', 'desc')->paginate(12);
+        $data = BlogPost::with('documents')->orderBy('cre_date', 'desc')->paginate(12);
 
         if (empty($data)) {
             return (new ErrorResource('Sorry! Blog Post not found.', 400))->response()->setStatusCode(400);
