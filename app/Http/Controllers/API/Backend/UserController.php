@@ -396,6 +396,9 @@ class UserController extends Controller
                                 en.upd_by,
                                 en.active_status,
                                 en.unit_no,
+                                en.approve_flag,
+                                en.approve_by,
+                                en.approve_date,
                                 u.user_pid,
                                 u.email,
                                 u.name

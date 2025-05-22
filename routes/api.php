@@ -187,7 +187,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      */
     Route::post('/blog-post', [BlogPostController::class, 'store']);
     Route::post('/blog-post-update/{id}', [BlogPostController::class, 'update']);
-    Route::get('/blog-post-homepage', [BlogPostController::class, 'homepage']);
     Route::get('/blog-post-all-blogs', [BlogPostController::class, 'allBlogs']);
     Route::get('/blog-post/{id}/{take_comm?}', [BlogPostController::class, 'getById']);
     Route::post('/blog-comment/{id}', [BlogPostController::class, 'blogCommentStore']);
@@ -284,6 +283,22 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
  */
 
 
+
+
+/**
+ * start backend route without auth
+ */
+
+Route::prefix('admin')->group(function () {
+    Route::get('/blog-post-homepage', [BlogPostController::class, 'homepage']);
+});
+
+/**
+ * end backend route without auth
+ */
+
+
+ 
 
 /**
  * All Frontend Controller Route Start
