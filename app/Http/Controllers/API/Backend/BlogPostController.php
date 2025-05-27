@@ -517,4 +517,28 @@ class BlogPostController extends Controller
         $result = AttachmentService::returnWithBannerAndThumbnail($data, 'Blog Post');
         return $result;
     }
+
+    /**
+     * @api BlogPost data Delete by Admin
+     * @author Md. Shohag Hossain <shohag@atilimited.net>
+     * @since 25/01/2025
+     */
+    public function deleteBlogsForAdmin(string $bpost_pid)
+    {
+        // check param
+        if (empty($bpost_pid)) {
+            return (new ErrorResource('Sorry, Specification Needed for this request. The Requested data was not found!', 400))->response()->setStatusCode(400);
+        }
+
+        // exist or not
+        $is_exist = BlogPost::where('active_status', 1)->where('bpost_pid', $bpost_pid)->first();
+        if (empty($is_exist)) {
+            return (new ErrorResource('Sorry, The Requested data was not found!', 404))->response()->setStatusCode(404);
+        }
+
+        // update status
+        $is_exist->update(['active_status' => 0]);
+
+        return (new ApiCommonResponseResource($is_exist, "Blog Post Deleted Successfully", 200))->response()->setStatusCode(200);
+    }
 }

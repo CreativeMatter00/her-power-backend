@@ -165,7 +165,7 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     });
 
     Route::get('/event-by-id/{event_pid}/{user_pid?}', [EventController::class, 'show_event']);
-    Route::apiResource('/ew-category', EventCategoryController::class);
+    Route::apiResource('/ew-category', EventCategoryController::class)->except('index');
     Route::get('/event-by-category/{pid}', [EventCategoryController::class, 'event_by_category']);
     Route::get('/my-events/{user_pid}', [FrontendEventController::class, 'my_events']);
     Route::get('/events-by-organizer/{org_pid}', [FrontendEventController::class, 'events_by_organizer']);
@@ -187,8 +187,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      */
     Route::post('/blog-post', [BlogPostController::class, 'store']);
     Route::post('/blog-post-update/{id}', [BlogPostController::class, 'update']);
-    Route::get('/blog-post-all-blogs', [BlogPostController::class, 'allBlogs']);
-    Route::get('/blog-post/{id}/{take_comm?}', [BlogPostController::class, 'getById']);
     Route::post('/blog-comment/{id}', [BlogPostController::class, 'blogCommentStore']);
     Route::get('/get-blog-comment/{id}/{take_comm?}', [BlogPostController::class, 'getblogComment']);
     Route::delete('/delete-blog-post/{id?}/{user_pid?}', [BlogPostController::class, 'destroy']);
@@ -202,7 +200,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      */
     Route::post('/article', [ArticleController::class, 'store']);
     Route::post('/article-update/{id}', [ArticleController::class, 'update']);
-    Route::get('/article-homepage', [ArticleController::class, 'homepage']);
     Route::get('/articles', [ArticleController::class, 'allArticle']);
     Route::get('/articles/{id}', [ArticleController::class, 'getById']);
     Route::delete('/delete-article/{id?}/{user_pid?}', [ArticleController::class, 'destroy']);
@@ -216,7 +213,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::post('/document', [DocumentController::class, 'store']);
     Route::post('/document-update/{id}', [DocumentController::class, 'update']);
     Route::get('/documents', [DocumentController::class, 'allDocuments']);
-    Route::get('/document-homepage', [DocumentController::class, 'documentsHomepage']);
     Route::delete('/delete-document/{id?}/{user_pid?}', [DocumentController::class, 'destroy']);
 
     /**
@@ -227,7 +223,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::post('/video', [ResourceLibraryVideoController::class, 'store']);
     Route::post('/video-update/{id}', [ResourceLibraryVideoController::class, 'update']);
     Route::get('/videos', [ResourceLibraryVideoController::class, 'allVideos']);
-    Route::get('/video-homepage', [ResourceLibraryVideoController::class, 'homepage']);
     Route::get('/video/{id}', [ResourceLibraryVideoController::class, 'getById']);
     Route::delete('/delete-video/{id?}/{user_pid?}', [ResourceLibraryVideoController::class, 'destroy']);
 
@@ -244,7 +239,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      * @since 18.02.2025
      */
     Route::apiResource('/success-stories', SuccessStoriesController::class);
-    Route::get('/success-stories-homepage', [SuccessStoriesController::class, 'homePage']);
     Route::post('/update-success-stories/{id}', [SuccessStoriesController::class, 'update']);
     Route::delete('/delete-success-stories/{id?}/{user_pid?}', [SuccessStoriesController::class, 'destroy']);
     Route::get('/success-story-manage/{user_pid}/{need?}', [SuccessStoriesController::class, 'storyManage']);
@@ -258,7 +252,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::apiResource('/challanges', ChallengesController::class);
     Route::delete('/challanges/{id?}/{user_pid?}', [ChallengesController::class, 'destroy']);
     Route::post('/challange-update/{id}', [ChallengesController::class, 'update']);
-    Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
     Route::get('/challenge-manage/{user_pid}/{need?}', [ChallengesController::class, 'challengeManage']);
 
     /**
@@ -274,8 +267,8 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      * Admin manage content APIs
      */
     Route::get('/admin-blog-post', [BlogPostController::class, 'allBlogsForAdmin']);
-    // Route::get('/get-all-products/{need?}', [ProductController::class, 'get_all_products']);
-
+    Route::delete('/admin-blog-post-delete/{blog_pid?}', [BlogPostController::class, 'deleteBlogsForAdmin']);
+    Route::get('/get-all-products/{need?}', [ProductController::class, 'get_all_products']);
 });
 
 /**
@@ -291,6 +284,14 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
 
 Route::prefix('admin')->group(function () {
     Route::get('/blog-post-homepage', [BlogPostController::class, 'homepage']);
+    Route::get('/blog-post-all-blogs', [BlogPostController::class, 'allBlogs']);
+    Route::get('/blog-post/{id}/{take_comm?}', [BlogPostController::class, 'getById']);
+    Route::get('/article-homepage', [ArticleController::class, 'homepage']);
+    Route::get('/document-homepage', [DocumentController::class, 'documentsHomepage']);
+    Route::get('/video-homepage', [ResourceLibraryVideoController::class, 'homepage']);
+    Route::get('/ew-category', [EventCategoryController::class, 'index']);
+    Route::get('/success-stories-homepage', [SuccessStoriesController::class, 'homePage']);
+    Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
 });
 
 /**
@@ -298,7 +299,7 @@ Route::prefix('admin')->group(function () {
  */
 
 
- 
+
 
 /**
  * All Frontend Controller Route Start

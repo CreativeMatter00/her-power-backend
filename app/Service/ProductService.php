@@ -401,11 +401,15 @@ class ProductService
         return $data;
     }
 
-    public function getAllProduct()
+    public function getAllProduct($params = null)
     {
 
         $data = [];
-        $querydata = Product::select('product_pid', 'product_name', 'is_sale')->orderBy('product_pid', 'ASC')->paginate(16);
+        if ($params == 'admin') { // for admin panel 
+            $querydata = Product::select('product_pid', 'product_name', 'is_sale', 'active_status')->orderBy('product_pid', 'ASC')->paginate(16);
+        } else { // for customer panel
+            $querydata = Product::select('product_pid', 'product_name', 'is_sale')->where('active_status', 1)->orderBy('product_pid', 'ASC')->paginate(16);
+        }
         $querydata->getCollection()->transform(function ($product) {
             $averageRating = DB::table('ec_rating as pro')
                 ->select(

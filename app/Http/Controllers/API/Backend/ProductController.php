@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Service\ImageUploadService;
+use App\Service\ProductService;
 
 class ProductController extends Controller
 {
@@ -218,5 +219,20 @@ class ProductController extends Controller
             'message' => 'Product deleted successfully!',
             'http_status' => 200,
         ]);
+    }
+
+    /**
+     * get all product for admin function
+     *
+     * @param  integer  $need
+     * @param  ProductService  $productService
+     * @return void
+     */
+    public function get_all_products(int $need, ProductService $productService)
+    {
+        if ($need != null) {
+            $products = $productService->getAllProduct('admin');
+            return response()->json($products, 200);
+        }
     }
 }
