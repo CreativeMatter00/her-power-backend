@@ -124,7 +124,7 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::get('/seller-profile-details/{eid}', [UserDashboardController::class, 'getSellerProfileDatails']);
     Route::get('/seller-product-filter', [FrontendProductController::class, 'productFilterSeller']);
     Route::apiResource('follower', EnterpFollowerController::class);
-    Route::apiResource('/wishlist', WishlistController::class);
+    Route::apiResource('/wishlist', WishlistController::class)->except('show');
     Route::apiResource('/chat-with-seller', ChatController::class);
     Route::get('/get-chats-for-seller/{eid}/{need?}', [ChatController::class, "index"]);
     Route::apiResource('/geo-division', DivisionController::class);
@@ -164,9 +164,7 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
         Route::apiResource('/organizer', EventOrganizerController::class);
     });
 
-    Route::get('/event-by-id/{event_pid}/{user_pid?}', [EventController::class, 'show_event']);
     Route::apiResource('/ew-category', EventCategoryController::class)->except('index');
-    Route::get('/event-by-category/{pid}', [EventCategoryController::class, 'event_by_category']);
     Route::get('/my-events/{user_pid}', [FrontendEventController::class, 'my_events']);
     Route::get('/events-by-organizer/{org_pid}', [FrontendEventController::class, 'events_by_organizer']);
     Route::get('/registration-overview/{user_pid}', [FrontendEventController::class, 'registration_overview']);
@@ -200,8 +198,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      */
     Route::post('/article', [ArticleController::class, 'store']);
     Route::post('/article-update/{id}', [ArticleController::class, 'update']);
-    Route::get('/articles', [ArticleController::class, 'allArticle']);
-    Route::get('/articles/{id}', [ArticleController::class, 'getById']);
     Route::delete('/delete-article/{id?}/{user_pid?}', [ArticleController::class, 'destroy']);
 
 
@@ -222,8 +218,6 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
      */
     Route::post('/video', [ResourceLibraryVideoController::class, 'store']);
     Route::post('/video-update/{id}', [ResourceLibraryVideoController::class, 'update']);
-    Route::get('/videos', [ResourceLibraryVideoController::class, 'allVideos']);
-    Route::get('/video/{id}', [ResourceLibraryVideoController::class, 'getById']);
     Route::delete('/delete-video/{id?}/{user_pid?}', [ResourceLibraryVideoController::class, 'destroy']);
 
     /**
@@ -269,6 +263,9 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::get('/admin-blog-post', [BlogPostController::class, 'allBlogsForAdmin']);
     Route::delete('/admin-blog-post-delete/{blog_pid?}', [BlogPostController::class, 'deleteBlogsForAdmin']);
     Route::get('/get-all-products/{need?}', [ProductController::class, 'get_all_products']);
+    Route::get('/get-all-course/{need?}', [CourseController::class, 'get_all_course']);
+    Route::get('/get-all-job/{need?}', [JobController::class, 'getAllJobsForAdmin']);
+    Route::delete('/job-delete/{job_pid}', [JobController::class, 'destroy']);
 });
 
 /**
@@ -292,6 +289,13 @@ Route::prefix('admin')->group(function () {
     Route::get('/ew-category', [EventCategoryController::class, 'index']);
     Route::get('/success-stories-homepage', [SuccessStoriesController::class, 'homePage']);
     Route::get('/challanges-homepage', [ChallengesController::class, 'homepage']);
+    Route::get('/event-by-id/{event_pid}/{user_pid?}', [EventController::class, 'show_event']);
+    Route::get('/videos', [ResourceLibraryVideoController::class, 'allVideos']);
+    Route::get('/video/{id}', [ResourceLibraryVideoController::class, 'getById']);
+    Route::get('/articles', [ArticleController::class, 'allArticle']);
+    Route::get('/articles/{id}', [ArticleController::class, 'getById']);
+    Route::get('/event-by-category/{pid}', [EventCategoryController::class, 'event_by_category']);
+    Route::get('/wishlist/{id}', [WishlistController::class, 'show']);
 });
 
 /**

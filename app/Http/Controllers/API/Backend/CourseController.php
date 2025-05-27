@@ -234,7 +234,7 @@ class CourseController extends Controller
      */
     public function destroy(string $id)
     {
-        $course = Course::where('course_pid', $id)->first();
+        $course = Course::where('course_pid', $id)->where('active_status', 1)->first();
 
         if ($course) {
             $course->update([
@@ -254,7 +254,7 @@ class CourseController extends Controller
      */
     public function get_course_by_student(string $course_id)
     {
-        $course_by_student = Course::with('students_enroll')->where('course_pid', $course_id)->first();
+        $course_by_student = Course::with('students_enroll')->where('course_pid', $course_id)->where('active_status', 1)->first();
 
         if (!$course_by_student) {
             return (new ErrorResource("No Course Found !!", 404))->response()->setStatusCode(404);
@@ -288,7 +288,7 @@ class CourseController extends Controller
     public function provider_details(string $provider_pid)
     {
         $provider_details = CourseProvider::with('attachments')->where('providor_pid', $provider_pid)->first();
-        $course = count(Course::where('providor_pid', $provider_pid)->get());
+        $course = count(Course::where('providor_pid', $provider_pid)->where('active_status', 1)->get());
 
         if (!$provider_details) {
             return (new ErrorResource("No Data Found !!", 404))->response()->setStatusCode(404);
@@ -308,5 +308,22 @@ class CourseController extends Controller
         ]);
 
         return (new ApiCommonResponseResource($provider_details, "Data fatch successfully", 200))->response()->setStatusCode(200);
+    }
+
+    public function get_all_course(int $need  = 10)
+    {
+        $data = Course::paginate($need);
+
+        if ($data->isEmpty()) {
+            return (new ErrorResource("No Course Found !!", 404))->response()->setStatusCode(404);
+        }
+
+        $data->map(function ($course) {
+            $course->thumbnail = asset('/public/' . $course->thumbnail);
+            $course->image = asset('/public/' . $course->image);
+            return $course;
+        });
+
+        return (new ApiCommonResponseResource($data, "Data fatch successfully", 200))->response()->setStatusCode(200);
     }
 }

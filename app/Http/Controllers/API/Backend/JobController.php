@@ -658,7 +658,14 @@ class JobController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $jobs = JobPost::where('jobpost_pid', $id)->first();
+
+        if (!$jobs) {
+            return (new ErrorResource("No jobs found", 404))->response()->setStatusCode(404);
+        }
+
+        $jobs->update(['active_status' => 0]);
+        return (new ApiCommonResponseResource($jobs, "Job deleted successfully.", 200))->response()->setStatusCode(200);
     }
 
 
@@ -821,5 +828,22 @@ class JobController extends Controller
             DB::rollBack();
             return (new ErrorResource('Oops! Something went wrong!', 501))->response()->setStatusCode(501);
         }
+    }
+
+    public function getAllJobsForAdmin($need = 10)
+    {
+        $jobs = JobPost::orderBy('cre_date', 'desc')
+            ->paginate($need);
+
+        if ($jobs->isEmpty()) {
+            return (new ErrorResource("No jobs found", 404))->response()->setStatusCode(404);
+        }
+
+        $jobs->map(function ($job) {
+            $job->file_url = $job->file_url ? asset('public/' . $job->file_url) : null;
+            return $job;
+        });
+
+        return (new ApiCommonResponseResource($jobs, "All jobs fetched successfully.", 200))->response()->setStatusCode(200);
     }
 }
