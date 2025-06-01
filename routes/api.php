@@ -266,6 +266,7 @@ Route::middleware(['auth:api', EnsureEmailIsVerified::class])->prefix('admin')->
     Route::get('/get-all-course/{need?}', [CourseController::class, 'get_all_course']);
     Route::get('/get-all-job/{need?}', [JobController::class, 'getAllJobsForAdmin']);
     Route::delete('/job-delete/{job_pid}', [JobController::class, 'destroy']);
+    Route::get('/get-all-events/{need?}', [EventController::class, 'getAllEventsForAdmin']);
 });
 
 /**

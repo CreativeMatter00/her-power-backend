@@ -486,4 +486,20 @@ class EventController extends BaseController
             return (new EventByIdResource($event_info, $is_exist_event, "Event fetch successfully", 200))->response()->setStatusCode(200);
         }
     }
+
+    /**
+     * Get all events for admin.
+     */
+    public function getAllEventsForAdmin(int $need = 10)
+    {
+        $events = Event::with('attachments', 'venues', 'tricketInfo', 'notification', 'eventSchedule')
+            ->orderBy('active_status', 'desc')
+            ->paginate($need);
+
+        if (!$events) {
+            return (new ErrorResource("No event Found !!", 404))->response()->setStatusCode(404);
+        } else {
+            return (new ApiCommonResponseResource($events, "event fetch successfully", 200))->response()->setStatusCode(200);
+        }
+    }
 }
