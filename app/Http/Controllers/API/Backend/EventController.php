@@ -499,7 +499,7 @@ class EventController extends BaseController
         if (!$events) {
             return (new ErrorResource("No event Found !!", 404))->response()->setStatusCode(404);
         } else {
-            return (new ApiCommonResponseResource($events, "event fetch successfully", 200))->response()->setStatusCode(200);
+            return (new EventCollection($events, "event fetch successfully", 200))->response()->setStatusCode(200);
         }
     }
 }

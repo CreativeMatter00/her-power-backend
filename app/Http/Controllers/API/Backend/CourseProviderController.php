@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ApiCommonResponseResource;
+use App\Http\Resources\CourseCollection;
 use App\Http\Resources\ErrorResource;
 use App\Mail\AdminApprovalMail;
 use App\Models\Branch;
@@ -32,7 +33,10 @@ class CourseProviderController extends Controller
     {
         try {
             if ($need == null) {
-                $provider = CourseProvider::orderByRaw("CASE WHEN approve_flag = 'N' THEN 0 ELSE 1 END")->get();
+                $provider = CourseProvider::orderByRaw("CASE WHEN approve_flag = 'N' THEN 0 ELSE 1 END")->get()->transform(function ($query) {
+                    $query->email_id = User::where('user_pid', $query->ref_user_pid)->pluck('email')->first();
+                    return $query;
+                });
             } else {
                 $provider = CourseProvider::orderByRaw("CASE WHEN approve_flag = 'N' THEN 0 ELSE 1 END")->paginate($need);
             }
@@ -41,7 +45,7 @@ class CourseProviderController extends Controller
                 return (new ErrorResource("Course Provider not found", 404))->response()->setStatusCode(404);
             }
 
-            return (new ApiCommonResponseResource($provider, "Course Provider fetched successfully.", 200))->response()->setStatusCode(200);
+            return (new CourseCollection($provider, "Course Provider fetched successfully.", 200))->response()->setStatusCode(200);
         } catch (Exception $e) {
             return (new ErrorResource('Oops! Course Provider not found, Please try again.', 501))->response()->setStatusCode(501);
         }
